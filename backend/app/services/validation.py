@@ -61,6 +61,7 @@ class ValidationService:
             async with session_scope() as session:
                 rules_repo = CountryRulesRepository(session)
                 all_rules = await rules_repo.get_all()
+                logger.info(f"Job {job_id}: Fetched {len(all_rules)} country rules from DB")
                 for r in all_rules:
                     if r.is_active:
                         country_rules_map[r.country_code.upper()] = r
@@ -68,11 +69,15 @@ class ValidationService:
                 # If country_code is AUTO, we have no fallback — every row uses its own column
                 if country_code.upper() != "AUTO":
                     fallback_rule = country_rules_map.get(country_code.upper())
+                    logger.info(f"Job {job_id}: Using fallback rule for country_code={country_code}: {fallback_rule is not None}")
+                else:
+                    logger.info(f"Job {job_id}: AUTO mode - will infer country from each row")
         except Exception as e:
             logger.error(f"Failed to fetch country rules: {e}")
 
         # ── 2. Read file (lazy scan for CSV, eager for XLSX) ──────────────
         file_ext = Path(file_path).suffix.lower()
+        logger.info(f"Job {job_id}: Reading file {file_path} with extension {file_ext}")
         try:
             if file_ext == ".csv":
                 # Use scan_csv for lazy evaluation — only collect() when needed
@@ -99,7 +104,9 @@ class ValidationService:
             df = df.rename(rename_map)
 
         total_records = len(df)
-        logger.info(f"Job {job_id}: {total_records} records from {file_path}")
+        logger.info(f"Job {job_id}: Loaded {total_records} records from {file_path}")
+        logger.info(f"Job {job_id}: DataFrame columns: {df.columns}")
+        logger.info(f"Job {job_id}: First 5 rows:\n{df.head(5)}")
 
         # ── 3. Pandera structural validation (fast, vectorised) ───────────
         # Use the fallback rule's regex if available; otherwise a permissive default
@@ -110,6 +117,8 @@ class ValidationService:
             fallback_rule.date_format if fallback_rule else "DD/MM/YYYY"
         )
 
+        logger.info(f"Job {job_id}: Pandera phone_regex={pandera_phone_regex}, date_format={pandera_date_format}")
+
         pandera_errors: dict[int, list[str]] = {}  # row_idx → [error messages]
 
         # Only run Pandera on rows that have all required columns present
@@ -117,12 +126,15 @@ class ValidationService:
                         "phone_number", "payment_mode", "transaction_date"}
         available_cols = pandera_cols.intersection(set(df.columns))
 
+        logger.info(f"Job {job_id}: Available columns for Pandera: {available_cols}")
+
         if len(available_cols) == len(pandera_cols):
             schema = build_pandera_schema(pandera_phone_regex, pandera_date_format)
             try:
                 schema.validate(df, lazy=True)
             except pa.errors.SchemaErrors as exc:
                 # Use native Polars iteration — no pyarrow needed
+                logger.info(f"Job {job_id}: Pandera validation failed with {len(exc.failure_cases)} errors")
                 for row in exc.failure_cases.iter_rows(named=True):
                     ridx = row.get("index")
                     if ridx is None or ridx < 0:
@@ -317,14 +329,24 @@ class ValidationService:
         valid_count   = len(valid_df)
         invalid_count = len(invalid_df)
 
-        logger.info(f"Job {job_id}: {valid_count} valid, {invalid_count} invalid / {total_records}")
+        logger.info(f"Job {job_id}: Validation complete - {valid_count} valid, {invalid_count} invalid / {total_records}")
+        logger.info(f"Job {job_id}: Validation breakdown: {breakdown}")
+        
+        # Log sample error messages for debugging
+        if error_logs:
+            logger.info(f"Job {job_id}: Sample error logs (first 10):")
+            for err in error_logs[:10]:
+                logger.info(f"  Row {err['row_number']}: {err['column_name']} - {err['error_message']} ({err['error_type']})")
 
         # ── 6. Write output files ─────────────────────────────────────────
         clean_path = storage_service.get_clean_output_path(job_id)
         error_path = storage_service.get_error_report_path(job_id)
 
+        logger.info(f"Job {job_id}: Writing clean file to {clean_path}")
         valid_df.write_csv(str(clean_path))
+        logger.info(f"Job {job_id}: Clean file written successfully")
 
+        logger.info(f"Job {job_id}: Writing error file to {error_path}")
         if invalid_indices:
             row_error_map: dict[int, str] = {}
             for err in error_logs:
@@ -335,6 +357,7 @@ class ValidationService:
             invalid_df.with_columns(pl.Series("validation_errors", reasons)).write_csv(str(error_path))
         else:
             invalid_df.write_csv(str(error_path))
+        logger.info(f"Job {job_id}: Error file written successfully")
 
         # Validation breakdown JSON
         breakdown["country_stats"] = country_stats
@@ -350,12 +373,16 @@ class ValidationService:
         chunk_paths: list[str] = []
         chunk_record_counts: list[int] = []
         if valid_count > 0:
+            logger.info(f"Job {job_id}: Generating {len(range(0, valid_count, CHUNK_SIZE))} chunks")
             for idx, start in enumerate(range(0, valid_count, CHUNK_SIZE)):
                 chunk_df = valid_df.slice(start, CHUNK_SIZE)
                 chunk_path = storage_service.get_chunk_output_path(job_id, idx + 1)
                 chunk_df.write_csv(str(chunk_path))
                 chunk_paths.append(str(chunk_path))
                 chunk_record_counts.append(len(chunk_df))
+            logger.info(f"Job {job_id}: Generated {len(chunk_paths)} chunks")
+        else:
+            logger.info(f"Job {job_id}: No valid records, skipping chunk generation")
 
         # Save validation logs to DB (capped at 500)
         try:
@@ -376,17 +403,31 @@ class ValidationService:
                 ]
                 if logs:
                     await repo.bulk_log_validation_errors(logs)
+                    logger.info(f"Job {job_id}: Saved {len(logs)} validation logs to DB")
         except Exception as e:
             logger.error(f"Failed to save validation logs: {e}")
 
+        # Verify output files exist before returning
+        clean_file_exists = clean_path.exists()
+        error_file_exists = error_path.exists()
+        logger.info(
+            f"Job {job_id}: Output file verification - "
+            f"clean_file_exists={clean_file_exists}, error_file_exists={error_file_exists}"
+        )
+        
+        if not clean_file_exists:
+            logger.error(f"Job {job_id}: Clean file does not exist at {clean_path}")
+        if not error_file_exists:
+            logger.error(f"Job {job_id}: Error file does not exist at {error_path}")
+        
         return {
             "job_id": job_id,
             "status": "completed",
             "total_records": total_records,
             "valid_records": valid_count,
             "invalid_records": invalid_count,
-            "clean_file_path": str(clean_path),
-            "error_report_path": str(error_path),
+            "clean_file_path": str(clean_path) if clean_file_exists else None,
+            "error_report_path": str(error_path) if error_file_exists else None,
             "chunk_paths": chunk_paths,
             "chunk_record_counts": chunk_record_counts,
             "error_logs": error_logs[:100],

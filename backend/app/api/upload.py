@@ -324,30 +324,65 @@ class UploadController(Controller):
         if not job:
             raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
 
-        output_dir = Path(settings.OUTPUT_DIR) / job_id
+        import logging
+        logger = logging.getLogger("xeno.api")
+        logger.info(f"Job {job_id}: Fetching downloads - job.status={job.status}, clean_file_path={job.clean_file_path}, error_report_path={job.error_report_path}")
 
-        # Clean file
-        clean_path = output_dir / "clean_transactions.csv"
-        clean_url  = f"/api/downloads/{job_id}/clean" if clean_path.exists() else None
-        clean_rc   = _safe_record_count(clean_path) if clean_url else None
-        clean_sz   = _safe_file_size(clean_path)    if clean_url else None
-
-        # Error report
-        error_path = output_dir / "error_report.csv"
-        error_url  = f"/api/downloads/{job_id}/errors" if error_path.exists() else None
-        error_rc   = _safe_record_count(error_path) if error_url else None
-        error_sz   = _safe_file_size(error_path)    if error_url else None
-
-        # Chunks
+        # Check if files are in Supabase (storage path) or local filesystem
+        clean_url = None
+        error_url = None
+        clean_rc = None
+        clean_sz = None
+        error_rc = None
+        error_sz = None
         chunk_infos: list[ChunkInfo] = []
-        if output_dir.exists():
-            for p in sorted(output_dir.glob("chunk_*.csv")):
-                num = p.stem.split("_")[-1]
-                chunk_infos.append(ChunkInfo(
-                    url=f"/api/downloads/{job_id}/chunk/{num}",
-                    record_count=_safe_record_count(p),
-                    file_size_bytes=_safe_file_size(p),
-                ))
+
+        # Try to get signed URLs from Supabase if paths are storage paths
+        try:
+            from app.services.storage import storage_service
+            
+            # Clean file
+            if job.clean_file_path:
+                if job.clean_file_path.startswith("/") or job.clean_file_path.startswith("./"):
+                    # Local filesystem path
+                    clean_path = Path(job.clean_file_path)
+                    if clean_path.exists():
+                        clean_url = f"/api/downloads/{job_id}/clean"
+                        clean_rc = _safe_record_count(clean_path)
+                        clean_sz = _safe_file_size(clean_path)
+                        logger.info(f"Job {job_id}: Clean file from local filesystem: {clean_path}")
+                else:
+                    # Supabase storage path
+                    try:
+                        clean_url = storage_service.generate_signed_url(job.clean_file_path, expires_in=3600)
+                        logger.info(f"Job {job_id}: Clean file from Supabase: {job.clean_file_path}")
+                    except Exception as e:
+                        logger.error(f"Job {job_id}: Failed to generate signed URL for clean file: {e}")
+            
+            # Error file
+            if job.error_report_path:
+                if job.error_report_path.startswith("/") or job.error_report_path.startswith("./"):
+                    # Local filesystem path
+                    error_path = Path(job.error_report_path)
+                    if error_path.exists():
+                        error_url = f"/api/downloads/{job_id}/errors"
+                        error_rc = _safe_record_count(error_path)
+                        error_sz = _safe_file_size(error_path)
+                        logger.info(f"Job {job_id}: Error file from local filesystem: {error_path}")
+                else:
+                    # Supabase storage path
+                    try:
+                        error_url = storage_service.generate_signed_url(job.error_report_path, expires_in=3600)
+                        logger.info(f"Job {job_id}: Error file from Supabase: {job.error_report_path}")
+                    except Exception as e:
+                        logger.error(f"Job {job_id}: Failed to generate signed URL for error file: {e}")
+            
+            # Chunks - for now, we'll need to store chunk paths in DB or generate them
+            # For simplicity, we'll skip chunks for Supabase for now
+            logger.info(f"Job {job_id}: Chunks not yet implemented for Supabase storage")
+            
+        except Exception as e:
+            logger.error(f"Job {job_id}: Error getting download URLs: {e}")
 
         return DownloadLinksResponse(
             job_id=job_id,

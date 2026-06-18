@@ -114,25 +114,34 @@ class StorageService:
             raise RuntimeError("Supabase client not initialized")
         
         if local_path is None:
-            # Create temp file with same extension
+            # Create temp file with same extension in temp directory
             ext = os.path.splitext(storage_path)[1]
-            local_path = tempfile.mktemp(suffix=ext)
+            local_path = tempfile.mktemp(suffix=ext, dir=self.upload_dir)
         
         try:
+            logger.info(f"Downloading {storage_path} from bucket {settings.supabase_bucket_name}")
             response = self.supabase.storage.from_(settings.supabase_bucket_name).download(
                 storage_path
             )
             
             # Ensure parent directory exists
-            os.makedirs(os.path.dirname(local_path), exist_ok=True)
+            parent_dir = os.path.dirname(local_path)
+            if parent_dir:
+                os.makedirs(parent_dir, exist_ok=True)
             
             with open(local_path, "wb") as f:
                 f.write(response)
             
-            logger.info(f"Successfully downloaded {storage_path} to {local_path}")
+            file_size = os.path.getsize(local_path)
+            logger.info(f"Successfully downloaded {storage_path} to {local_path} ({file_size} bytes)")
             return local_path
         except Exception as e:
-            logger.error(f"Failed to download {storage_path} from Supabase: {e}")
+            logger.error(
+                f"Failed to download {storage_path} from Supabase:\n"
+                f"Error type: {type(e).__name__}\n"
+                f"Error message: {str(e)}\n"
+                f"Bucket: {settings.supabase_bucket_name}"
+            )
             raise
 
     def delete_file(self, storage_path: str) -> None:

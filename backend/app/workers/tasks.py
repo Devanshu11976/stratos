@@ -67,10 +67,25 @@ async def _process_async(job_id: str, storage_path: str, country_code: str) -> s
     # ── Step 2: Download file from Supabase Storage ─────────────────────
     local_file_path = None
     try:
+        logger.info(f"Attempting to download file from Supabase: {storage_path}")
         local_file_path = storage_service.download_file(storage_path)
         logger.info(f"Downloaded file from Supabase to {local_file_path}")
+        
+        # Verify file exists and log details
+        import os
+        if os.path.exists(local_file_path):
+            file_size = os.path.getsize(local_file_path)
+            logger.info(f"Downloaded file exists, size: {file_size} bytes")
+        else:
+            logger.error(f"Downloaded file does not exist at {local_file_path}")
+            raise FileNotFoundError(f"Downloaded file not found: {local_file_path}")
     except Exception as exc:
-        logger.error(f"Failed to download file from Supabase: {exc}")
+        logger.error(
+            f"Failed to download file from Supabase:\n"
+            f"Error type: {type(exc).__name__}\n"
+            f"Error message: {str(exc)}\n"
+            f"Traceback:\n{traceback.format_exc()}"
+        )
         raise RuntimeError(f"Failed to download file from storage: {str(exc)}")
 
     # ── Step 3: Run validation (timed) ───────────────────────────────────
@@ -79,7 +94,49 @@ async def _process_async(job_id: str, storage_path: str, country_code: str) -> s
     t_end = time.monotonic()
     processing_time_ms = int((t_end - t_start) * 1000)
 
-    # ── Step 4: Persist metrics ───────────────────────────────────────────
+    # ── Step 4: Upload output files to Supabase Storage ───────────────────
+    clean_storage_path = None
+    error_storage_path = None
+    chunk_storage_paths = []
+    
+    try:
+        # Upload clean file if it exists
+        clean_local_path = result.get("clean_file_path")
+        if clean_local_path and os.path.exists(clean_local_path):
+            clean_storage_name = f"{job_id}/clean_transactions.csv"
+            clean_storage_path = storage_service.upload_file(clean_local_path, clean_storage_name)
+            logger.info(f"Job {job_id}: Uploaded clean file to Supabase: {clean_storage_path}")
+            # Cleanup local file after upload
+            storage_service.cleanup_temp_file(clean_local_path)
+        
+        # Upload error file if it exists
+        error_local_path = result.get("error_report_path")
+        if error_local_path and os.path.exists(error_local_path):
+            error_storage_name = f"{job_id}/error_report.csv"
+            error_storage_path = storage_service.upload_file(error_local_path, error_storage_name)
+            logger.info(f"Job {job_id}: Uploaded error file to Supabase: {error_storage_path}")
+            # Cleanup local file after upload
+            storage_service.cleanup_temp_file(error_local_path)
+        
+        # Upload chunks if they exist
+        chunk_local_paths = result.get("chunk_paths", [])
+        for idx, chunk_path in enumerate(chunk_local_paths):
+            if os.path.exists(chunk_path):
+                chunk_storage_name = f"{job_id}/chunk_{idx + 1}.csv"
+                chunk_storage_path = storage_service.upload_file(chunk_path, chunk_storage_name)
+                chunk_storage_paths.append(chunk_storage_path)
+                logger.info(f"Job {job_id}: Uploaded chunk {idx + 1} to Supabase: {chunk_storage_path}")
+                # Cleanup local file after upload
+                storage_service.cleanup_temp_file(chunk_path)
+        
+        logger.info(f"Job {job_id}: Uploaded {len(chunk_storage_paths)} chunks to Supabase")
+    except Exception as exc:
+        logger.error(f"Job {job_id}: Failed to upload output files to Supabase: {exc}")
+        # Continue with local paths if upload fails
+        clean_storage_path = clean_local_path
+        error_storage_path = error_local_path
+
+    # ── Step 5: Persist metrics ───────────────────────────────────────────
     async with session_scope() as session:
         repo = JobsRepository(session)
         job = await repo.get_by_id(job_id)
@@ -88,10 +145,15 @@ async def _process_async(job_id: str, storage_path: str, country_code: str) -> s
         job.total_records        = result.get("total_records", 0)
         job.valid_records        = result.get("valid_records", 0)
         job.invalid_records      = result.get("invalid_records", 0)
-        job.clean_file_path      = result.get("clean_file_path")
-        job.error_report_path    = result.get("error_report_path")
+        job.clean_file_path      = clean_storage_path or result.get("clean_file_path")
+        job.error_report_path    = error_storage_path or result.get("error_report_path")
         job.validation_breakdown = result.get("validation_breakdown")
         job.processing_time_ms   = processing_time_ms
+        logger.info(
+            f"Job {job_id}: Persisting metrics - "
+            f"total={job.total_records}, valid={job.valid_records}, invalid={job.invalid_records}, "
+            f"clean_path={job.clean_file_path}, error_path={job.error_report_path}"
+        )
         await session.flush()
 
     # ── Step 5: AI report ────────────────────────────────────────────────
@@ -127,8 +189,12 @@ async def _process_async(job_id: str, storage_path: str, country_code: str) -> s
         job = await repo.get_by_id(job_id)
         if job:
             job.status = "completed"
+            logger.info(f"Job {job_id}: Marked as completed")
             await session.flush()
+        else:
+            logger.error(f"Job {job_id}: Job not found when trying to mark as completed")
 
+    logger.info(f"Job {job_id}: Processing complete, returning local_file_path={local_file_path}")
     return local_file_path
 
 
