@@ -86,3 +86,14 @@ services:
         value: ./uploads
       - key: OUTPUT_DIR
         value: ./outputs
+
+  - type: web
+    name: xeno-frontend
+    runtime: node
+    buildCommand: npm run build
+    startCommand: npm start
+    plan: free
+    rootDir: ./xeno-data-hub
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        value: https://xeno-api.onrender.com
