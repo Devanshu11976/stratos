@@ -119,7 +119,23 @@ async def seed_country_rules() -> None:
 
 
 async def on_startup() -> None:
-    await seed_country_rules()
+    import logging
+    import asyncio
+    logger = logging.getLogger("xeno.startup")
+    logger.info("Starting application startup sequence...")
+    
+    try:
+        # Add timeout to prevent indefinite hangs during startup
+        await asyncio.wait_for(seed_country_rules(), timeout=10.0)
+        logger.info("Country rules seeded successfully")
+    except asyncio.TimeoutError:
+        logger.error("Startup timeout: seed_country_rules() took longer than 10 seconds")
+        # Continue startup even if seeding fails - don't block the entire app
+    except Exception as e:
+        logger.error(f"Startup error in seed_country_rules(): {e}")
+        # Continue startup even if seeding fails - don't block the entire app
+    
+    logger.info("Application startup complete")
 
 
 cors_config = CORSConfig(
