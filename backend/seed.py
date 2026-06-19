@@ -5,12 +5,12 @@ from app.config.db import async_session_factory
 from app.models.rules import CountryRules
 
 RULES = [
-    {"country_code": "IN", "country_name": "India",       "phone_regex": r"^\d{10}$",   "date_format": "DD/MM/YYYY"},
-    {"country_code": "SG", "country_name": "Singapore",   "phone_regex": r"^\d{8}$",    "date_format": "DD-MM-YYYY"},
-    {"country_code": "US", "country_name": "USA",         "phone_regex": r"^\d{10}$",     "date_format": "MM/DD/YYYY"},
-    {"country_code": "DE", "country_name": "Germany",     "phone_regex": r"^\d{10,11}$",     "date_format": "DD.MM.YYYY"},
-    {"country_code": "GB", "country_name": "UK",          "phone_regex": r"^\d{10}$",        "date_format": "DD/MM/YYYY"},
-    {"country_code": "AU", "country_name": "Australia",   "phone_regex": r"^\d{9}$",    "date_format": "DD/MM/YYYY"},
+    {"country_code": "IN", "country_name": "India",       "phone_regex": r"^\d{8,12}$",   "date_format": "DD/MM/YYYY", "valid_payment_modes": ["NETBANKING", "UPI", "CARD", "CASH"]},
+    {"country_code": "SG", "country_name": "Singapore",   "phone_regex": r"^\d{8,12}$",    "date_format": "DD-MM-YYYY", "valid_payment_modes": ["NETBANKING", "CARD", "CASH", "PAYNOW", "NETS"]},
+    {"country_code": "US", "country_name": "USA",         "phone_regex": r"^\d{8,12}$",     "date_format": "MM/DD/YYYY", "valid_payment_modes": ["NETBANKING", "CARD", "ACH", "WIRE", "PAYPAL", "CASH"]},
+    {"country_code": "DE", "country_name": "Germany",     "phone_regex": r"^\d{8,12}$",     "date_format": "DD.MM.YYYY", "valid_payment_modes": ["NETBANKING", "CARD", "SEPA", "CASH", "PAYPAL"]},
+    {"country_code": "GB", "country_name": "UK",          "phone_regex": r"^\d{8,12}$",        "date_format": "DD/MM/YYYY", "valid_payment_modes": ["CARD", "BACS", "FASTER_PAYMENTS", "PAYPAL", "CASH"]},
+    {"country_code": "AU", "country_name": "Australia",   "phone_regex": r"^\d{8,12}$",    "date_format": "DD/MM/YYYY", "valid_payment_modes": ["CARD", "BPAY", "PAYID", "CASH", "PAYPAL"]},
 ]
 
 async def seed():
