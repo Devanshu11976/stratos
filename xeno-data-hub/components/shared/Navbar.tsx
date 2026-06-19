@@ -68,10 +68,19 @@ export default function Navbar() {
                 }}
             >
                 {NAV_LINKS.map((link) => (
-                    <a
+                    <button
                         key={link}
-                        href={`#${link.toLowerCase()}`}
-                        style={{ transition: 'color 0.2s' }}
+                        type="button"
+                        onClick={() => document.getElementById(link.toLowerCase())?.scrollIntoView({ behavior: 'smooth' })}
+                        style={{
+                            background: 'none',
+                            border: 'none',
+                            color: 'var(--mist)',
+                            fontSize: 14,
+                            cursor: 'pointer',
+                            padding: 0,
+                            transition: 'color 0.2s',
+                        }}
                         onMouseEnter={(e) =>
                             ((e.target as HTMLElement).style.color = 'var(--paper)')
                         }
@@ -80,7 +89,7 @@ export default function Navbar() {
                         }
                     >
                         {link}
-                    </a>
+                    </button>
                 ))}
             </div>
 
@@ -154,14 +163,25 @@ export default function Navbar() {
                     }}
                 >
                     {NAV_LINKS.map((link) => (
-                        <a
+                        <button
                             key={link}
-                            href={`#${link.toLowerCase()}`}
-                            onClick={() => setMenuOpen(false)}
-                            style={{ color: 'var(--mist)', fontSize: 15 }}
+                            type="button"
+                            onClick={() => {
+                                document.getElementById(link.toLowerCase())?.scrollIntoView({ behavior: 'smooth' })
+                                setMenuOpen(false)
+                            }}
+                            style={{
+                                background: 'none',
+                                border: 'none',
+                                color: 'var(--mist)',
+                                fontSize: 15,
+                                cursor: 'pointer',
+                                padding: 0,
+                                textAlign: 'left',
+                            }}
                         >
                             {link}
-                        </a>
+                        </button>
                     ))}
                 </div>
             )}

@@ -726,7 +726,9 @@ function WorkspaceDashboard() {
         </div>
 
         {/* Pipeline tracker */}
-        {status !== 'loading' && <PipelineTracker status={status as JobStatus}/>}
+        <div id="pipeline">
+          {status !== 'loading' && <PipelineTracker status={status as JobStatus}/>}
+        </div>
 
         {/* Loading */}
         {status === 'loading' && (
@@ -800,8 +802,89 @@ function WorkspaceDashboard() {
               <CountryAnalysisSection countryStats={job.country_stats} countryNames={countryNames}/>
             )}
 
+            {/* Architecture */}
+            <div id="architecture">
+              <SectionCard title="Processing Architecture" delay={80}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 16,
+                  padding: '20px',
+                  background: 'rgba(255,255,255,0.02)',
+                  borderRadius: 16,
+                  overflow: 'auto',
+                }}>
+                  {[
+                    { label: 'Upload', icon: '📤', color: 'var(--refine)' },
+                    { label: 'Redis Queue', icon: '⚡', color: 'var(--signal)' },
+                    { label: 'Worker', icon: '⚙️', color: 'var(--ingest)' },
+                    { label: 'Validator', icon: '✓', color: '#10b981' },
+                    { label: 'Output', icon: '📦', color: 'var(--mist)' },
+                  ].map((step, i) => (
+                    <div key={step.label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, minWidth: 100 }}>
+                      <div style={{
+                        width: 56, height: 56, borderRadius: 14,
+                        background: `${step.color}15`, border: `1px solid ${step.color}40`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 24, transition: 'transform 0.2s',
+                      }}>
+                        {step.icon}
+                      </div>
+                      <span style={{ fontSize: 11, color: 'var(--mist)', fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600 }}>
+                        {step.label}
+                      </span>
+                      {i < 4 && (
+                        <div style={{ position: 'absolute', left: 'calc(50% + 32px)', top: '50%', transform: 'translateY(-50%)', width: 32, height: 2, background: 'var(--line)' }}/>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <div style={{
+                  marginTop: 16, padding: 12, background: 'rgba(155,107,255,0.04)',
+                  borderRadius: 8, fontSize: 12, color: 'var(--mist-dim)', lineHeight: 1.6,
+                }}>
+                  <strong>Flow:</strong> Upload file → Redis Queue (RQ) → Worker Process → Polars Validation → Clean/Error Output
+                </div>
+              </SectionCard>
+            </div>
+
+            {/* Rules */}
+            <div id="rules">
+              <SectionCard title="Validation Rules Applied" delay={90}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {[
+                    { label: 'Country Detection', value: 'Inferred from country_code column', icon: '🌍' },
+                    { label: 'Phone Regex', value: 'Country-specific pattern (e.g., IN: ^\\d{10}$)', icon: '📱' },
+                    { label: 'Payment Modes', value: 'Allowed modes per country (UPI, CARD, etc.)', icon: '💳' },
+                    { label: 'Date Format', value: 'Expected format (DD/MM/YYYY, MM/DD/YYYY, etc.)', icon: '📅' },
+                    { label: 'Amount Limits', value: 'Min/max amount validation (0.01-1,000,000.0)', icon: '💰' },
+                    { label: 'Quantity Limits', value: 'Min/max quantity validation (1-1000)', icon: '📊' },
+                  ].map((rule) => (
+                    <div key={rule.label} style={{
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      padding: '12px 16px', background: 'rgba(255,255,255,0.02)',
+                      borderRadius: 12, border: '1px solid var(--line-soft)',
+                    }}>
+                      <span style={{ fontSize: 20 }}>{rule.icon}</span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--mist)', fontFamily: "'Space Grotesk', sans-serif", marginBottom: 2 }}>
+                          {rule.label}
+                        </div>
+                        <div style={{ fontSize: 11, color: 'var(--mist-dim)' }}>
+                          {rule.value}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </SectionCard>
+            </div>
+
             {/* AI Insights */}
-            {report && <AIInsightsSection report={report} qualityScore={qualityScore??0} countryNames={countryNames}/>}
+            <div id="insights">
+              {report && <AIInsightsSection report={report} qualityScore={qualityScore??0} countryNames={countryNames}/>}
+            </div>
 
             {/* Downloads */}
             {downloads && <DownloadCenter downloads={downloads}/>}
