@@ -364,7 +364,13 @@ class ValidationService:
         error_path = storage_service.get_error_report_path(job_id)
 
         logger.info(f"Job {job_id}: Writing clean file to {clean_path}")
-        valid_df.write_csv(str(clean_path))
+        # Cast phone_number to string to prevent scientific notation in output
+        clean_df = valid_df
+        if "phone_number" in clean_df.columns:
+            clean_df = clean_df.with_columns(pl.col("phone_number").cast(pl.Utf8))
+        if "customer_phone" in clean_df.columns:
+            clean_df = clean_df.with_columns(pl.col("customer_phone").cast(pl.Utf8))
+        clean_df.write_csv(str(clean_path))
         logger.info(f"Job {job_id}: Clean file written successfully")
 
         logger.info(f"Job {job_id}: Writing error file to {error_path}")
@@ -375,9 +381,21 @@ class ValidationService:
                 msg = f"{err['column_name']}: {err['error_message']}"
                 row_error_map[ri] = (row_error_map.get(ri, "") + "; " + msg).lstrip("; ")
             reasons = [row_error_map.get(i, "Unknown error") for i in invalid_indices]
-            invalid_df.with_columns(pl.Series("validation_errors", reasons)).write_csv(str(error_path))
+            # Cast phone_number to string to prevent scientific notation in output
+            error_df = invalid_df.with_columns(pl.Series("validation_errors", reasons))
+            if "phone_number" in error_df.columns:
+                error_df = error_df.with_columns(pl.col("phone_number").cast(pl.Utf8))
+            if "customer_phone" in error_df.columns:
+                error_df = error_df.with_columns(pl.col("customer_phone").cast(pl.Utf8))
+            error_df.write_csv(str(error_path))
         else:
-            invalid_df.write_csv(str(error_path))
+            # Cast phone_number to string to prevent scientific notation in output
+            error_df = invalid_df
+            if "phone_number" in error_df.columns:
+                error_df = error_df.with_columns(pl.col("phone_number").cast(pl.Utf8))
+            if "customer_phone" in error_df.columns:
+                error_df = error_df.with_columns(pl.col("customer_phone").cast(pl.Utf8))
+            error_df.write_csv(str(error_path))
         logger.info(f"Job {job_id}: Error file written successfully")
 
         # Validation breakdown JSON

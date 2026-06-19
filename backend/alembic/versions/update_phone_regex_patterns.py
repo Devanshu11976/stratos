@@ -20,7 +20,7 @@ def upgrade():
     # Update phone regex patterns to accept local format numbers (without country code prefix)
     op.execute("""
         UPDATE country_rules 
-        SET phone_regex = '^[6-9]\\d{9}$'
+        SET phone_regex = '^\\d{10}$'
         WHERE country_code = 'IN'
     """)
     
@@ -32,7 +32,7 @@ def upgrade():
     
     op.execute("""
         UPDATE country_rules 
-        SET phone_regex = '^[3689]\\d{7}$'
+        SET phone_regex = '^\\d{8}$'
         WHERE country_code = 'SG'
     """)
     
@@ -66,7 +66,7 @@ def downgrade():
     
     op.execute("""
         UPDATE country_rules 
-        SET phone_regex = '^\\+65\\d{8}$'
+        SET phone_regex = '^\\+65[3689]\\d{7}$'
         WHERE country_code = 'SG'
     """)
     
