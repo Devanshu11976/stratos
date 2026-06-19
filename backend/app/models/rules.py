@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from sqlalchemy import String, Boolean, Index, text
+from sqlalchemy import String, Boolean, Integer, Index, text, Float
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 from app.models.database import Base
@@ -23,6 +23,28 @@ class CountryRules(Base):
         JSONB, nullable=True, default=None
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    
+    # Enhanced validation configuration
+    # Allowed currencies for this country (e.g., ["INR", "USD"])
+    valid_currencies: Mapped[list | None] = mapped_column(
+        JSONB, nullable=True, default=None
+    )
+    # Minimum and maximum amount limits
+    min_amount: Mapped[float | None] = mapped_column(Float, nullable=True)
+    max_amount: Mapped[float | None] = mapped_column(Float, nullable=True)
+    # Minimum and maximum quantity limits
+    min_quantity: Mapped[int | None] = mapped_column(Integer, nullable=True, default=1)
+    max_quantity: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Whether to allow future transaction dates
+    allow_future_dates: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # Required fields for this country (e.g., ["email", "customer_name"])
+    required_fields: Mapped[list | None] = mapped_column(
+        JSONB, nullable=True, default=None
+    )
+    # Email domain whitelist (e.g., ["gmail.com", "yahoo.com"])
+    email_domain_whitelist: Mapped[list | None] = mapped_column(
+        JSONB, nullable=True, default=None
+    )
 
     __table_args__ = (
         Index(

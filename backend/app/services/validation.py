@@ -1,11 +1,21 @@
 import re
 import logging
 import traceback
+import os
 import polars as pl
 import pandera.polars as pa
 from pathlib import Path
+from datetime import datetime
 from app.services.storage import storage_service
+from app.services.report_generator import report_generator
+from app.services.ai_insights import ai_insights_generator
 from app.validators.rules import build_pandera_schema
+from app.validators.framework import ValidationError, ErrorCode, ErrorSeverity
+from app.validators.schema_validator import SchemaValidator
+from app.validators.field_validators import (
+    EmailValidator, NameValidator, TimeValidator, CurrencyValidator,
+    CountryValidator, QuantityValidator, AmountValidator
+)
 
 logger = logging.getLogger("xeno.validation")
 
@@ -14,6 +24,11 @@ CHUNK_SIZE = 1000
 EXPECTED_COLUMNS = [
     "order_id", "product_id", "quantity", "amount",
     "phone_number", "payment_mode", "transaction_date",
+]
+
+# Extended required fields based on country rules
+EXTENDED_REQUIRED_FIELDS = [
+    "customer_name", "email", "country_code"
 ]
 
 COLUMN_ALIASES = {
@@ -40,9 +55,22 @@ def _is_valid_phone(phone_val: str, phone_regex: str) -> bool:
 
 def _is_valid_date(date_val: str) -> bool:
     from datetime import datetime
-    for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y", "%d-%m-%Y", "%d.%m.%Y"):
+    # Try common date formats, with ISO (YYYY-MM-DD) first as fallback
+    date_formats = [
+        "%Y-%m-%d",  # ISO format - always accept
+        "%d/%m/%Y",  # DD/MM/YYYY
+        "%m/%d/%Y",  # MM/DD/YYYY
+        "%d-%m-%Y",  # DD-MM-YYYY
+        "%d.%m.%Y",  # DD.MM.YYYY
+        "%Y/%m/%d",  # YYYY/MM/DD
+        "%Y.%m.%d",  # YYYY.MM.DD
+    ]
+    for fmt in date_formats:
         try:
-            datetime.strptime(date_val, fmt)
+            parsed = datetime.strptime(date_val, fmt)
+            # Additional validation: reject clearly invalid dates
+            if parsed.month > 12 or parsed.day > 31:
+                return False
             return True
         except ValueError:
             continue
@@ -51,6 +79,8 @@ def _is_valid_date(date_val: str) -> bool:
 
 class ValidationService:
     async def process_dataset(self, job_id: str, file_path: str, country_code: str) -> dict:
+        import time
+        start_time = time.time()
         # ── 1. Fetch country rules from DB ────────────────────────────────
         from app.config.db import session_scope
         from app.repositories.rules import CountryRulesRepository
@@ -115,6 +145,28 @@ class ValidationService:
         logger.info(f"Job {job_id}: Loaded {total_records} records from {file_path}")
         logger.info(f"Job {job_id}: DataFrame columns: {df.columns}")
         logger.info(f"Job {job_id}: First 5 rows:\n{df.head(5)}")
+
+        # ── 2.5 Schema validation ───────────────────────────────────────
+        schema_errors = SchemaValidator.validate_schema(df, file_path)
+        if schema_errors:
+            logger.error(f"Job {job_id}: Schema validation failed with {len(schema_errors)} errors")
+            for err in schema_errors:
+                logger.error(f"  {err.error_code.value}: {err.message}")
+            # Return early if schema validation fails
+            return {
+                "job_id": job_id,
+                "status": "failed",
+                "total_records": total_records,
+                "valid_records": 0,
+                "invalid_records": total_records,
+                "clean_file_path": None,
+                "error_report_path": None,
+                "chunk_paths": [],
+                "chunk_record_counts": [],
+                "error_logs": [e.to_dict() for e in schema_errors],
+                "validation_breakdown": {"schema_errors": len(schema_errors)},
+                "country_stats": {},
+            }
 
         # ── 3. Pandera structural validation (fast, vectorised) ───────────
         # Use the fallback rule's regex if available; otherwise a permissive default
@@ -211,8 +263,12 @@ class ValidationService:
                 })
                 breakdown["pandera_schema"] += 1
 
-            # Missing fields
-            for col in EXPECTED_COLUMNS:
+            # Missing fields - check country-specific required fields
+            required_fields = EXPECTED_COLUMNS
+            if row_rule and row_rule.required_fields:
+                required_fields = list(set(required_fields + row_rule.required_fields))
+            
+            for col in required_fields:
                 if col in row:
                     val = row[col]
                     if val is None or (isinstance(val, str) and val.strip() == ""):
@@ -223,6 +279,74 @@ class ValidationService:
                             "error_type": "missing_fields",
                         })
                         breakdown["missing_fields"] += 1
+
+            # Email validation
+            if row.get("email"):
+                email_error = EmailValidator.validate(
+                    str(row["email"]),
+                    row_idx + 1,
+                    row_rule.email_domain_whitelist if row_rule else None
+                )
+                if email_error:
+                    row_errors.append({
+                        "row_number": email_error.row_number,
+                        "column_name": email_error.field,
+                        "error_message": email_error.message,
+                        "error_type": email_error.error_code.value,
+                    })
+                    breakdown["invalid_email"] = breakdown.get("invalid_email", 0) + 1
+
+            # Customer name validation
+            if row.get("customer_name"):
+                name_error = NameValidator.validate(str(row["customer_name"]), row_idx + 1)
+                if name_error:
+                    row_errors.append({
+                        "row_number": name_error.row_number,
+                        "column_name": name_error.field,
+                        "error_message": name_error.message,
+                        "error_type": name_error.error_code.value,
+                    })
+                    breakdown["invalid_name"] = breakdown.get("invalid_name", 0) + 1
+
+            # Country validation
+            if row.get("country"):
+                country_error = CountryValidator.validate(str(row["country"]), row_idx + 1)
+                if country_error:
+                    row_errors.append({
+                        "row_number": country_error.row_number,
+                        "column_name": country_error.field,
+                        "error_message": country_error.message,
+                        "error_type": country_error.error_code.value,
+                    })
+                    breakdown["invalid_country"] = breakdown.get("invalid_country", 0) + 1
+
+            # Currency validation
+            if row.get("currency"):
+                currency_error = CurrencyValidator.validate(
+                    str(row["currency"]),
+                    row_idx + 1,
+                    row_rule.valid_currencies if row_rule else None
+                )
+                if currency_error:
+                    row_errors.append({
+                        "row_number": currency_error.row_number,
+                        "column_name": currency_error.field,
+                        "error_message": currency_error.message,
+                        "error_type": currency_error.error_code.value,
+                    })
+                    breakdown["invalid_currency"] = breakdown.get("invalid_currency", 0) + 1
+
+            # Time validation
+            if row.get("time"):
+                time_error = TimeValidator.validate(str(row["time"]), row_idx + 1)
+                if time_error:
+                    row_errors.append({
+                        "row_number": time_error.row_number,
+                        "column_name": time_error.field,
+                        "error_message": time_error.message,
+                        "error_type": time_error.error_code.value,
+                    })
+                    breakdown["invalid_time"] = breakdown.get("invalid_time", 0) + 1
 
             # Phone — DB regex only, no hardcoded digit-length tables
             if row.get("phone_number"):
@@ -253,41 +377,61 @@ class ValidationService:
                         "error_type": "invalid_date",
                     })
                     breakdown["invalid_date"] += 1
+                else:
+                    # Check for future dates if not allowed
+                    if row_rule and not row_rule.allow_future_dates:
+                        try:
+                            for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y", "%d-%m-%Y", "%d.%m.%Y"):
+                                try:
+                                    parsed_date = datetime.strptime(date_val, fmt)
+                                    if parsed_date > datetime.now():
+                                        row_errors.append({
+                                            "row_number": row_idx + 1,
+                                            "column_name": "transaction_date",
+                                            "error_message": f"Date '{date_val}' is in the future",
+                                            "error_type": "future_date",
+                                        })
+                                        breakdown["future_date"] = breakdown.get("future_date", 0) + 1
+                                    break
+                                except ValueError:
+                                    continue
+                        except Exception:
+                            pass
 
-            # Quantity
+            # Quantity - use new validator with country-specific limits
             if row.get("quantity") is not None:
-                try:
-                    if float(str(row["quantity"])) < 0:
-                        row_errors.append({
-                            "row_number": row_idx + 1, "column_name": "quantity",
-                            "error_message": f"Negative quantity: {row['quantity']}",
-                            "error_type": "negative_quantity",
-                        })
-                        breakdown["negative_quantity"] += 1
-                except (ValueError, TypeError):
+                qty_error = QuantityValidator.validate(
+                    row["quantity"],
+                    row_idx + 1,
+                    min_qty=row_rule.min_quantity if row_rule else 1,
+                    max_qty=row_rule.max_quantity if row_rule else None
+                )
+                if qty_error:
                     row_errors.append({
-                        "row_number": row_idx + 1, "column_name": "quantity",
-                        "error_message": f"Non-numeric quantity: {row['quantity']}",
-                        "error_type": "negative_quantity",
+                        "row_number": qty_error.row_number,
+                        "column_name": qty_error.field,
+                        "error_message": qty_error.message,
+                        "error_type": qty_error.error_code.value,
                     })
+                    breakdown["invalid_quantity"] = breakdown.get("invalid_quantity", 0) + 1
                     breakdown["negative_quantity"] += 1
 
-            # Amount
+            # Amount - use new validator with country-specific limits
             if row.get("amount") is not None:
-                try:
-                    if float(str(row["amount"])) < 0:
-                        row_errors.append({
-                            "row_number": row_idx + 1, "column_name": "amount",
-                            "error_message": f"Negative amount: {row['amount']}",
-                            "error_type": "negative_amount",
-                        })
-                        breakdown["negative_amount"] += 1
-                except (ValueError, TypeError):
+                amount_error = AmountValidator.validate(
+                    row["amount"],
+                    row_idx + 1,
+                    min_amount=row_rule.min_amount if row_rule else 0.01,
+                    max_amount=row_rule.max_amount if row_rule else None
+                )
+                if amount_error:
                     row_errors.append({
-                        "row_number": row_idx + 1, "column_name": "amount",
-                        "error_message": f"Non-numeric amount: {row['amount']}",
-                        "error_type": "negative_amount",
+                        "row_number": amount_error.row_number,
+                        "column_name": amount_error.field,
+                        "error_message": amount_error.message,
+                        "error_type": amount_error.error_code.value,
                     })
+                    breakdown["invalid_amount"] = breakdown.get("invalid_amount", 0) + 1
                     breakdown["negative_amount"] += 1
 
             # Payment mode — DB-loaded per country; None = accept all
@@ -315,32 +459,34 @@ class ValidationService:
             else:
                 country_stats[display_country]["valid"] += 1
 
-        # Duplicate order_ids (vectorised via Polars)
-        if "order_id" in df.columns:
-            order_ids = df["order_id"].to_list()
-            seen: dict[str, int] = {}
-            for i, oid in enumerate(order_ids):
-                if oid and str(oid).strip():
-                    key = str(oid).strip()
-                    if key in seen:
-                        error_logs.append({
-                            "row_number": i + 1,
-                            "column_name": "order_id",
-                            "error_message": f"Duplicate order_id '{key}' (first at row {seen[key]})",
-                            "error_type": "duplicate_order_id",
-                        })
-                        if valid_mask[i]:
-                            valid_mask[i] = False
-                            breakdown["duplicate_order_id"] += 1
-                            row = df.row(i, named=True)
-                            raw_c = str(row.get("country") or "").strip().upper()
-                            r = country_rules_map.get(raw_c) or fallback_rule
-                            dc = r.country_code.upper() if r else display_country
-                            if dc in country_stats and country_stats[dc]["valid"] > 0:
-                                country_stats[dc]["valid"] -= 1
-                                country_stats[dc]["invalid"] += 1
-                    else:
-                        seen[key] = i + 1
+        # Enhanced duplicate detection (order_id, transaction_id, customer_id)
+        duplicate_fields = ["order_id", "transaction_id", "customer_id"]
+        for dup_field in duplicate_fields:
+            if dup_field in df.columns:
+                field_values = df[dup_field].to_list()
+                seen: dict[str, int] = {}
+                for i, val in enumerate(field_values):
+                    if val and str(val).strip():
+                        key = str(val).strip()
+                        if key in seen:
+                            error_logs.append({
+                                "row_number": i + 1,
+                                "column_name": dup_field,
+                                "error_message": f"Duplicate {dup_field} '{key}' (first at row {seen[key]})",
+                                "error_type": "duplicate_record",
+                            })
+                            if valid_mask[i]:
+                                valid_mask[i] = False
+                                breakdown["duplicate_record"] = breakdown.get("duplicate_record", 0) + 1
+                                row = df.row(i, named=True)
+                                raw_c = str(row.get("country") or "").strip().upper()
+                                r = country_rules_map.get(raw_c) or fallback_rule
+                                dc = r.country_code.upper() if r else display_country
+                                if dc in country_stats and country_stats[dc]["valid"] > 0:
+                                    country_stats[dc]["valid"] -= 1
+                                    country_stats[dc]["invalid"] += 1
+                        else:
+                            seen[key] = i + 1
 
         # ── 5. Split valid / invalid ──────────────────────────────────────
         valid_indices   = [i for i, v in enumerate(valid_mask) if v]
@@ -420,13 +566,18 @@ class ValidationService:
         except Exception as e:
             logger.error(f"Job {job_id}: Failed to write breakdown: {e}")
 
-        # Chunks — use Polars lazy slicing
+        # Chunks — use Polars lazy slicing with configurable chunk size
         chunk_paths: list[str] = []
         chunk_record_counts: list[int] = []
+        
+        # Get chunk size from environment or default to 1000
+        chunk_size = int(os.getenv("CHUNK_SIZE", str(CHUNK_SIZE)))
+        logger.info(f"Job {job_id}: Using chunk size: {chunk_size}")
+        
         if valid_count > 0:
-            logger.info(f"Job {job_id}: Generating {len(range(0, valid_count, CHUNK_SIZE))} chunks")
-            for idx, start in enumerate(range(0, valid_count, CHUNK_SIZE)):
-                chunk_df = valid_df.slice(start, CHUNK_SIZE)
+            logger.info(f"Job {job_id}: Generating {len(range(0, valid_count, chunk_size))} chunks")
+            for idx, start in enumerate(range(0, valid_count, chunk_size)):
+                chunk_df = valid_df.slice(start, chunk_size)
                 chunk_path = storage_service.get_chunk_output_path(job_id, idx + 1)
                 chunk_df.write_csv(str(chunk_path))
                 chunk_paths.append(str(chunk_path))
@@ -471,7 +622,8 @@ class ValidationService:
         if not error_file_exists:
             logger.error(f"Job {job_id}: Error file does not exist at {error_path}")
         
-        return {
+        # Generate validation report and error summary
+        validation_result = {
             "job_id": job_id,
             "status": "completed",
             "total_records": total_records,
@@ -485,6 +637,57 @@ class ValidationService:
             "validation_breakdown": breakdown,
             "country_stats": country_stats,
         }
+        
+        try:
+            validation_report_path = report_generator.generate_validation_report(job_id, validation_result)
+            logger.info(f"Job {job_id}: Generated validation report at {validation_report_path}")
+        except Exception as e:
+            logger.error(f"Job {job_id}: Failed to generate validation report: {e}")
+        
+        try:
+            error_summary_path = report_generator.generate_error_summary(job_id, error_logs)
+            logger.info(f"Job {job_id}: Generated error summary at {error_summary_path}")
+        except Exception as e:
+            logger.error(f"Job {job_id}: Failed to generate error summary: {e}")
+        
+        # Generate AI insights
+        try:
+            ai_insights = await ai_insights_generator.generate_insights(job_id, validation_result)
+            logger.info(f"Job {job_id}: Generated AI insights")
+        except Exception as e:
+            logger.error(f"Job {job_id}: Failed to generate AI insights: {e}")
+            ai_insights = {"error": str(e)}
+        
+        # Calculate processing time and throughput
+        processing_time = time.time() - start_time
+        throughput = total_records / processing_time if processing_time > 0 else 0
+        
+        # Generate processing statistics
+        processing_stats = {
+            "job_id": job_id,
+            "processing_time_seconds": round(processing_time, 2),
+            "throughput_records_per_second": round(throughput, 2),
+            "total_records": total_records,
+            "valid_records": valid_count,
+            "invalid_records": invalid_count,
+            "validation_rate": round((valid_count / total_records) * 100, 2) if total_records > 0 else 0,
+            "error_rate": round((invalid_count / total_records) * 100, 2) if total_records > 0 else 0,
+        }
+        
+        try:
+            stats_path = storage_service.get_processing_stats_path(job_id)
+            with open(stats_path, "w") as f:
+                json.dump(processing_stats, f, indent=2)
+            logger.info(f"Job {job_id}: Generated processing stats at {stats_path}")
+        except Exception as e:
+            logger.error(f"Job {job_id}: Failed to generate processing stats: {e}")
+        
+        # Add processing metrics to validation result
+        validation_result["processing_time_seconds"] = round(processing_time, 2)
+        validation_result["throughput_records_per_second"] = round(throughput, 2)
+        validation_result["ai_insights"] = ai_insights
+        
+        return validation_result
 
 
 validation_service = ValidationService()

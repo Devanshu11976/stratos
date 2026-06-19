@@ -61,6 +61,22 @@ class StorageService:
     def get_validation_breakdown_path(self, job_id: str) -> Path:
         """Validation breakdown JSON file path."""
         return self.get_job_output_dir(job_id) / "validation_breakdown.json"
+    
+    def get_validation_report_path(self, job_id: str) -> Path:
+        """Comprehensive validation report JSON file path."""
+        return self.get_job_output_dir(job_id) / "validation_report.json"
+    
+    def get_error_summary_path(self, job_id: str) -> Path:
+        """Error summary report JSON file path."""
+        return self.get_job_output_dir(job_id) / "error_summary.json"
+    
+    def get_ai_insights_path(self, job_id: str) -> Path:
+        """AI insights report JSON file path."""
+        return self.get_job_output_dir(job_id) / "ai_insights.json"
+    
+    def get_processing_stats_path(self, job_id: str) -> Path:
+        """Processing statistics JSON file path."""
+        return self.get_job_output_dir(job_id) / "processing_stats.json"
 
     def upload_file(self, local_path: str, storage_path: Optional[str] = None) -> str:
         """
