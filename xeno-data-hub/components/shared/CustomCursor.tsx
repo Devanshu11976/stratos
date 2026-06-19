@@ -19,8 +19,8 @@ export default function CustomCursor() {
         const updateTransform = () => {
             dot.style.left = `${mx}px`
             dot.style.top = `${my}px`
-            dot.style.transform = `translate(-50%, -50%) scale(${isHovering ? 2.0 : 1})`
-            dot.style.opacity = isHovering ? '0.85' : '1'
+            dot.style.transform = `translate(-50%, -50%) scale(${isHovering ? 2.5 : 1})`
+            dot.style.opacity = isHovering ? '0.9' : '1'
         }
 
         const onMove = (e: MouseEvent) => {
@@ -55,7 +55,7 @@ export default function CustomCursor() {
             style={{
                 position: 'fixed',
                 pointerEvents: 'none',
-                zIndex: 9999,
+                zIndex: 99999,
                 width: 8,
                 height: 8,
                 borderRadius: '50%',
@@ -66,6 +66,8 @@ export default function CustomCursor() {
                 mixBlendMode: 'normal',
                 left: -100,
                 top: -100,
+                outline: '1px solid var(--refine)',
+                outlineOffset: '2px',
             }}
         />
     )
