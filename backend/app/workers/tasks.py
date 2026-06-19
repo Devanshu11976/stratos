@@ -12,12 +12,21 @@ logger = logging.getLogger("xeno.worker")
 RETRY_POLICY = Retry(max=3, interval=[60, 120, 240])
 
 
+def _run_async(coro):
+    """Helper to run async coroutines in sync RQ context with proper event loop handling."""
+    loop = asyncio.new_event_loop()
+    try:
+        return loop.run_until_complete(coro)
+    finally:
+        loop.close()
+
+
 def process_dataset_task(job_id: str, storage_path: str, country_code: str) -> None:
     """RQ entry point — orchestrates validation, DB updates, and AI report."""
     logger.info(f"Starting processing for job {job_id}")
     local_file_path = None
     try:
-        local_file_path = asyncio.run(_process_async(job_id, storage_path, country_code))
+        local_file_path = _run_async(_process_async(job_id, storage_path, country_code))
         logger.info(f"Finished processing job {job_id}")
     except Exception as exc:
         logger.error(
@@ -27,13 +36,7 @@ def process_dataset_task(job_id: str, storage_path: str, country_code: str) -> N
             f"Traceback:\n{traceback.format_exc()}"
         )
         try:
-            # Use asyncio.new_event_loop() to avoid loop attachment issues
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            try:
-                loop.run_until_complete(_mark_failed(job_id, str(exc)))
-            finally:
-                loop.close()
+            _run_async(_mark_failed(job_id, str(exc)))
         except Exception as mark_exc:
             logger.error(
                 f"Could not mark job {job_id} as failed in DB:\n"
