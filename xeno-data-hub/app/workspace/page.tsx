@@ -825,31 +825,41 @@ function WorkspaceDashboard() {
                     <div key={step.label} style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, flex: 1 }}>
                         <div style={{
-                        width: 60,
-                        height: 60,
-                        borderRadius: 16,
-                        background: step.label === 'Validator' 
-                          ? `rgba(16, 185, 129, 0.15)` 
-                          : `${step.color}08`,
-                        border: step.label === 'Validator'
-                          ? `2px solid #10b981`
-                          : `1px solid ${step.color}30`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: 24,
-                        transition: 'transform 0.2s',
-                        position: 'relative',
-                        ...(step.label === 'Validator' && {
-                          boxShadow: '0 0 0 rgba(16, 185, 129, 0)',
-                          animation: 'pulseGlow 2s ease-in-out infinite',
-                        }),
-                      }}>
+                          width: 60,
+                          height: 60,
+                          borderRadius: 16,
+                          background: step.label === 'Validator' ? 'rgba(16,185,129,0.15)' : `${step.color}10`,
+                          border: step.label === 'Validator' ? '2px solid #10b981' : `1px solid ${step.color}35`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: 26,
+                          boxShadow: step.label === 'Validator' ? '0 0 18px rgba(16,185,129,0.3)' : 'none',
+                          animation: step.label === 'Validator' ? 'pulseGlow 2s ease-in-out infinite' : 'none',
+                        }}>
                         {step.icon}
                       </div>
-                      <span style={{ fontSize: 13, color: 'var(--mist)', fontFamily: "'Space Grotesk', sans-serif', fontWeight: 700 }}>
+                      <span style={{ fontSize: 12, color: 'var(--mist)', fontFamily: "'Space Grotesk', sans-serif', fontWeight: 700 }}>
                         {step.label}
                       </span>
+                      {i < 4 && (
+                        <div style={{
+                          width: 32,
+                          height: 2,
+                          background: 'linear-gradient(90deg, var(--line), var(--refine))',
+                          flexShrink: 0,
+                          opacity: 0.5,
+                          position: 'relative',
+                          overflow: 'hidden',
+                        }}>
+                          <div style={{
+                            position: 'absolute',
+                            inset: 0,
+                            background: 'linear-gradient(90deg, transparent, var(--refine), transparent)',
+                            animation: 'flowPulse 1.8s ease-in-out infinite',
+                          }}/>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -881,7 +891,7 @@ function WorkspaceDashboard() {
                         borderRadius: 20,
                         fontSize: 11,
                         color: 'var(--mist)',
-                        fontFamily: "'IBM Plex Mono', monospace',
+                        fontFamily: "'IBM Plex Mono', monospace",
                       }}>
                         {flowStep}
                       </span>
@@ -1008,7 +1018,7 @@ export default function WorkspacePage() {
       <Navbar/>
       <Suspense fallback={
         <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center',
-          background:'#0a0b0e', color:'var(--mist)', fontFamily:'sans-serif', fontSize:14 }}>
+          background:'#0a0b0e', color:'var(--mist)', fontFamily:'sans-serif", fontSize:14 }}>
           Loading workspace…
         </div>
       }>
