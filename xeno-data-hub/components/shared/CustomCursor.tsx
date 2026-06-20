@@ -34,7 +34,8 @@ export default function CustomCursor() {
             const target = (e.target as Element).closest(
                 'a, button, [role="button"], input, [data-cursor-hover]'
             )
-            const next = !!target
+            const noScale = (e.target as Element).closest('[data-cursor-no-scale]')
+            const next = !!target && !noScale
             if (next !== isHovering) {
                 isHovering = next
                 updateTransform()

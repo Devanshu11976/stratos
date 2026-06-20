@@ -60,6 +60,7 @@ export default function Navbar() {
             {/* Nav links — desktop */}
             <div
                 className="nav-links-desktop"
+                data-cursor-no-scale
                 style={{
                     display: 'flex',
                     gap: 36,
@@ -148,6 +149,7 @@ export default function Navbar() {
             {menuOpen && (
                 <div
                     className="nav-mobile-menu"
+                    data-cursor-no-scale
                     style={{
                         position: 'absolute',
                         top: '100%',
