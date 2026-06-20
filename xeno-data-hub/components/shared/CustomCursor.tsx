@@ -20,7 +20,7 @@ export default function CustomCursor() {
 
         const updateTransform = () => {
             container.style.transform = `translate3d(${mx}px, ${my}px, 0)`
-            inner.style.transform = `translate(-50%, -50%) scale(${isHovering ? 2.0 : 1})`
+            inner.style.transform = `translate(-50%, -50%) scale(${isHovering ? 1.5 : 1})`
             inner.style.opacity = isHovering ? '0.85' : '1'
         }
 

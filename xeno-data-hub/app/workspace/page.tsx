@@ -185,6 +185,7 @@ function MetricCard({ label, rawValue, display, accent }: {
       borderRadius: 16, padding: '22px 18px', textAlign: 'center', flex: 1, minWidth: 120,
       transition: 'border-color 0.2s, background 0.2s',
     }}
+      data-cursor-hover
       onMouseEnter={e => {
         (e.currentTarget as HTMLDivElement).style.borderColor = accent;
         (e.currentTarget as HTMLDivElement).style.background = `${accent}0d`
@@ -244,6 +245,7 @@ function CountryAnalysisSection({ countryStats, countryNames }: { countryStats: 
                 transition: 'border-color 0.2s, background 0.2s, transform 0.2s',
                 cursor: 'default',
               }}
+              data-cursor-hover
               onMouseEnter={e => {
                 const el = e.currentTarget as HTMLDivElement
                 el.style.borderColor = col; el.style.background = `${col}0d`; el.style.transform = 'translateY(-2px)'
@@ -352,6 +354,7 @@ function DownloadCard({ icon, label, accent, url, recordCount, fileSizeBytes }: 
       cursor: isDemo ? 'default' : 'pointer',
       opacity: isDemo ? 0.6 : 1,
     }}
+      data-cursor-hover
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
       onClick={!isDemo ? handleDownload : undefined}
@@ -566,6 +569,7 @@ function PerfTile({ label, value, sub }: { label: string; value: string; sub?: s
       borderRadius: 14, padding: '18px 16px', textAlign: 'center',
       transition: 'all 0.18s ease', transform: hov ? 'translateY(-2px)' : 'translateY(0)',
     }}
+      data-cursor-hover
       onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}>
       <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 22, fontWeight: 700, color: 'var(--refine)', marginBottom: 4 }}>
         {value}
