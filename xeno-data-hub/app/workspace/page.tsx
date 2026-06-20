@@ -813,7 +813,8 @@ function WorkspaceDashboard() {
                   padding: '20px',
                   background: 'rgba(255,255,255,0.02)',
                   borderRadius: 16,
-                  overflow: 'auto',
+                  overflow: 'visible',
+                  position: 'relative',
                 }}>
                   {[
                     { label: 'Upload', icon: '📤', color: 'var(--refine)' },
@@ -822,29 +823,91 @@ function WorkspaceDashboard() {
                     { label: 'Validator', icon: '✓', color: '#10b981' },
                     { label: 'Output', icon: '📦', color: 'var(--mist)' },
                   ].map((step, i) => (
-                    <div key={step.label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, minWidth: 100 }}>
+                    <div key={step.label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, minWidth: 100, position: 'relative' }}>
+                      {/* Animated connecting line between steps */}
+                      {i < 4 && (
+                        <div style={{
+                          position: 'absolute',
+                          left: 'calc(100% + 8px)',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          width: '32px',
+                          height: '2px',
+                          background: 'var(--line)',
+                          zIndex: 0,
+                        }}>
+                          <div style={{
+                            position: 'absolute',
+                            left: 0,
+                            top: 0,
+                            height: '100%',
+                            width: '100%',
+                            background: 'linear-gradient(90deg, var(--refine), var(--signal))',
+                            animation: 'flowPulse 2s ease-in-out infinite',
+                          }}/>
+                        </div>
+                      )}
+                      {/* Step icon container with border */}
                       <div style={{
-                        width: 56, height: 56, borderRadius: 14,
-                        background: `${step.color}15`, border: `1px solid ${step.color}40`,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 24, transition: 'transform 0.2s',
+                        width: 56,
+                        height: 56,
+                        borderRadius: 14,
+                        background: step.label === 'Validator' 
+                          ? `rgba(16, 185, 129, 0.15)` 
+                          : `${step.color}08`,
+                        border: step.label === 'Validator'
+                          ? `2px solid #10b981`
+                          : `1px solid ${step.color}30`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 24,
+                        transition: 'transform 0.2s',
+                        position: 'relative',
+                        ...(step.label === 'Validator' && {
+                          boxShadow: '0 0 0 rgba(16, 185, 129, 0)',
+                          animation: 'pulseGlow 2s ease-in-out infinite',
+                        }),
                       }}>
                         {step.icon}
                       </div>
-                      <span style={{ fontSize: 11, color: 'var(--mist)', fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600 }}>
+                      <span style={{ fontSize: 13, color: 'var(--mist)', fontFamily: "'Space Grotesk', sans-serif', fontWeight: 700 }}>
                         {step.label}
                       </span>
-                      {i < 4 && (
-                        <div style={{ position: 'absolute', left: 'calc(50% + 32px)', top: '50%', transform: 'translateY(-50%)', width: 32, height: 2, background: 'var(--line)' }}/>
-                      )}
                     </div>
                   ))}
                 </div>
                 <div style={{
-                  marginTop: 16, padding: 12, background: 'rgba(155,107,255,0.04)',
-                  borderRadius: 8, fontSize: 12, color: 'var(--mist-dim)', lineHeight: 1.6,
+                  marginTop: 16,
+                  padding: 12,
+                  background: 'rgba(255,255,255,0.02)',
+                  borderRadius: 8,
+                  fontSize: 12,
+                  color: 'var(--mist-dim)',
+                  lineHeight: 1.6,
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: 8,
+                  alignItems: 'center',
                 }}>
-                  <strong>Flow:</strong> Upload file → Redis Queue (RQ) → Worker Process → Polars Validation → Clean/Error Output
+                  <span style={{ color: 'var(--mist-dim)' }}>Flow:</span>
+                  {['Upload file', 'Redis Queue (RQ)', 'Worker Process', 'Polars Validation', 'Clean/Error Output'].map((flowStep, i) => (
+                    <span key={flowStep} style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '6px 12px',
+                      background: 'rgba(255,255,255,0.05)',
+                      border: '1px solid var(--line)',
+                      borderRadius: 20,
+                      fontSize: 11,
+                      color: 'var(--mist)',
+                      fontFamily: "'IBM Plex Mono', monospace',
+                    }}>
+                      {flowStep}
+                      {i < 4 && <span style={{ color: 'var(--mist-dim)' }}>→</span>}
+                    </span>
+                  ))}
                 </div>
               </SectionCard>
             </div>
@@ -852,26 +915,60 @@ function WorkspaceDashboard() {
             {/* Rules */}
             <div id="rules">
               <SectionCard title="Validation Rules Applied" delay={90}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div className="validation-rules-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
                   {[
-                    { label: 'Country Detection', value: 'Inferred from country_code column', icon: '🌍' },
-                    { label: 'Phone Regex', value: 'Country-specific pattern (e.g., IN: ^\\d{10}$)', icon: '📱' },
-                    { label: 'Payment Modes', value: 'Allowed modes per country (UPI, CARD, etc.)', icon: '💳' },
-                    { label: 'Date Format', value: 'Expected format (DD/MM/YYYY, MM/DD/YYYY, etc.)', icon: '📅' },
-                    { label: 'Amount Limits', value: 'Min/max amount validation (0.01-1,000,000.0)', icon: '💰' },
-                    { label: 'Quantity Limits', value: 'Min/max quantity validation (1-1000)', icon: '📊' },
+                    { label: 'Country Detection', value: 'Inferred from country_code column', icon: '🌍', color: '#4c8dff' },
+                    { label: 'Phone Regex', value: 'Country-specific pattern (e.g., IN: ^\\d{10}$)', icon: '📱', color: '#9b6bff' },
+                    { label: 'Payment Modes', value: 'Allowed modes per country (UPI, CARD, etc.)', icon: '💳', color: '#38bdf8' },
+                    { label: 'Date Format', value: 'Expected format (DD/MM/YYYY, MM/DD/YYYY, etc.)', icon: '📅', color: '#f5b042' },
+                    { label: 'Amount Limits', value: 'Min/max amount validation (0.01-1,000,000.0)', icon: '💰', color: '#eab308' },
+                    { label: 'Quantity Limits', value: 'Min/max quantity validation (1-1000)', icon: '📊', color: '#10b981' },
                   ].map((rule) => (
                     <div key={rule.label} style={{
-                      display: 'flex', alignItems: 'center', gap: 12,
-                      padding: '12px 16px', background: 'rgba(255,255,255,0.02)',
-                      borderRadius: 12, border: '1px solid var(--line-soft)',
-                    }}>
-                      <span style={{ fontSize: 20 }}>{rule.icon}</span>
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 14,
+                      padding: '18px 20px',
+                      background: 'rgba(255,255,255,0.02)',
+                      borderRadius: 12,
+                      border: `2px solid ${rule.color}30`,
+                      borderLeft: `2px solid ${rule.color}`,
+                      transition: 'all 0.2s ease',
+                      cursor: 'default',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = `${rule.color}08`
+                      e.currentTarget.style.boxShadow = `0 0 12px ${rule.color}20`
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(255,255,255,0.02)'
+                      e.currentTarget.style.boxShadow = 'none'
+                    }}
+                    >
+                      <div style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: '50%',
+                        background: 'rgba(255,255,255,0.05)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 24,
+                        flexShrink: 0,
+                      }}>
+                        {rule.icon}
+                      </div>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--mist)', fontFamily: "'Space Grotesk', sans-serif", marginBottom: 2 }}>
+                        <div style={{
+                          fontSize: 14,
+                          fontWeight: 700,
+                          color: '#ffffff',
+                          fontFamily: "'Space Grotesk', sans-serif",
+                          marginBottom: 4,
+                        }}>
                           {rule.label}
                         </div>
-                        <div style={{ fontSize: 11, color: 'var(--mist-dim)' }}>
+                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', lineHeight: 1.5 }}>
                           {rule.value}
                         </div>
                       </div>
@@ -897,6 +994,24 @@ function WorkspaceDashboard() {
         @keyframes pulse-dot {
           0%,100% { opacity:1; transform:scale(1); }
           50% { opacity:0.4; transform:scale(0.85); }
+        }
+        @keyframes flowPulse {
+          0%,100% { opacity: 0.3; }
+          50% { opacity: 0.7; }
+        }
+        @keyframes pulseGlow {
+          0%,100% { box-shadow: 0 0 0 rgba(16, 185, 129, 0); }
+          50% { box-shadow: 0 0 12px rgba(16, 185, 129, 0.4); }
+        }
+        .validation-rules-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 12px;
+        }
+        @media (max-width: 768px) {
+          .validation-rules-grid {
+            grid-template-columns: 1fr;
+          }
         }
         @media (max-width: 600px) {
           div[style*="maxWidth: 880px"] { padding-inline: 12px !important; }
