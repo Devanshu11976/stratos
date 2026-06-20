@@ -574,9 +574,10 @@ export default function Architecture() {
           }
           .architecture-svg {
             min-width: auto !important;
-            max-width: 100% !important;
-            width: 100% !important;
+            max-width: 140% !important;
+            width: 140% !important;
             height: auto !important;
+            transform: translateX(-14%) !important;
           }
         }
         @media (max-width: 480px) {
