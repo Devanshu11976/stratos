@@ -832,7 +832,9 @@ function WorkspaceDashboard() {
                           fontSize: 26,
                           boxShadow: step.label === 'Validator' ? '0 0 18px rgba(16,185,129,0.3)' : 'none',
                           animation: step.label === 'Validator' ? 'pulseGlow 2s ease-in-out infinite' : 'none',
-                        }}>
+                          cursor: 'default',
+                        }}
+                          data-cursor-hover>
                           {step.icon}
                         </div>
                         <span style={{ fontSize: 12, color: step.label === 'Validator' ? '#10b981' : 'var(--mist)', fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700 }}>
@@ -885,7 +887,9 @@ function WorkspaceDashboard() {
                         fontSize: 11,
                         color: 'var(--mist)',
                         fontFamily: "'IBM Plex Mono', monospace",
-                      }}>
+                        cursor: 'default',
+                      }}
+                        data-cursor-hover>
                         {flowStep}
                       </span>
                       {i < 4 && <span style={{ color: 'var(--mist-dim)', fontSize: 11 }}>→</span>}
@@ -919,6 +923,7 @@ function WorkspaceDashboard() {
                       transition: 'all 0.2s ease',
                       cursor: 'default',
                     }}
+                      data-cursor-hover
                       onMouseEnter={(e) => {
                         const el = e.currentTarget as HTMLDivElement
                         el.style.background = `${rule.color}0a`
