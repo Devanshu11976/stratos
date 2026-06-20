@@ -259,11 +259,15 @@ export default function ValidationCore({ intensity = 0 }: ValidationCoreProps) {
                     if (!heroSection) return
                     
                     const currentScrollY = window.scrollY
+                    const isMobile = window.innerWidth < 768
+                    
                     // Throttle scroll events to reduce processing frequency
                     if (Math.abs(currentScrollY - lastScrollY) < 5 && scrollThrottleTimer) return
                     lastScrollY = currentScrollY
                     
-                    if (currentScrollY < 60) {
+                    // On mobile, delay the animation trigger to give users time to scroll
+                    const scrollThreshold = isMobile ? 150 : 60
+                    if (currentScrollY < scrollThreshold) {
                         targetOrder = 0
                         return
                     }
@@ -275,9 +279,11 @@ export default function ValidationCore({ intensity = 0 }: ValidationCoreProps) {
                             if (disposed || !heroSection || cachedHeroHeight <= 0) return
                             // Use cached hero dimensions — no getBoundingClientRect here
                             const relativeTop = cachedHeroTop - window.scrollY
+                            // On mobile, use a larger divisor to slow down the animation
+                            const divisor = isMobile ? 0.9 : 0.6
                             const progress = Math.min(
                                 1,
-                                Math.max(0, -relativeTop / (cachedHeroHeight * 0.6))
+                                Math.max(0, -relativeTop / (cachedHeroHeight * divisor))
                             )
                             if (!isNaN(progress)) targetOrder = progress
                         }, 50)
@@ -331,7 +337,8 @@ export default function ValidationCore({ intensity = 0 }: ValidationCoreProps) {
 
                     if (needsLayoutRefresh) refreshLayout()
 
-                    const lerpSpeed = targetOrder < orderFactor ? 0.04 : 0.025
+                    const isMobile = window.innerWidth < 768
+                    const lerpSpeed = targetOrder < orderFactor ? 0.04 : (isMobile ? 0.015 : 0.025)
                     orderFactor += (targetOrder - orderFactor) * lerpSpeed
                     if (orderFactor < 0.015) orderFactor = 0
                     const currentIntensity = intensityRef.current
@@ -415,9 +422,11 @@ export default function ValidationCore({ intensity = 0 }: ValidationCoreProps) {
                         const gridY = grid[iy]
                         const gridZ = grid[iz]
 
-                        let finalX = flowX + (gridX - flowX) * orderFactor
-                        let finalY = flowY + (gridY - flowY) * orderFactor
-                        let finalZ = flowZ + (gridZ - flowZ) * orderFactor
+                        // On mobile, reduce the grid transition to prevent glitches
+                        const mobileOrderFactor = isMobile ? orderFactor * 0.3 : orderFactor
+                        let finalX = flowX + (gridX - flowX) * mobileOrderFactor
+                        let finalY = flowY + (gridY - flowY) * mobileOrderFactor
+                        let finalZ = flowZ + (gridZ - flowZ) * mobileOrderFactor
 
                         if (particleFade < 1) {
                             const shrink = 0.3 + particleFade * 0.7
