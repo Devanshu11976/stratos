@@ -231,10 +231,10 @@ function CountryAnalysisSection({ countryStats, countryNames }: { countryStats: 
   return (
     <SectionCard title="Country Analysis" delay={80}>
       <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
-        {entries.map(([code, s]) => {
+        {entries.filter(([code]) => code !== 'XX').map(([code, s]) => {
           const passRate = s.total ? (s.valid/s.total)*100 : 0
           const col = passRate>=80?'#10b981':passRate>=60?'var(--signal)':'#f87171'
-          const name = countryNames[code] ?? code
+          const name = code === 'XX' ? 'Unknown' : (countryNames[code] ?? code)
           return (
             <div key={code}
               style={{
