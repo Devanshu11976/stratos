@@ -4,6 +4,19 @@ import { useEffect, useState, useCallback, useRef, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Navbar from '@/components/shared/Navbar'
 import CustomCursor from '@/components/shared/CustomCursor'
+import { 
+  Upload, 
+  Zap, 
+  Cpu, 
+  Check, 
+  Package, 
+  Globe, 
+  Phone, 
+  CreditCard, 
+  Calendar, 
+  DollarSign, 
+  BarChart2 
+} from 'lucide-react'
 
 import { apiFetch } from '@/lib/api'
 import { cssDuration, cssDurationMs } from '@/lib/motion'
@@ -807,11 +820,11 @@ function WorkspaceDashboard() {
                   position: 'relative',
                 }}>
                   {[
-                    { label: 'Upload', icon: '📤', color: 'var(--refine)' },
-                    { label: 'Redis Queue', icon: '⚡', color: 'var(--signal)' },
-                    { label: 'Worker', icon: '⚙️', color: 'var(--ingest)' },
-                    { label: 'Validator', icon: '✓', color: '#10b981' },
-                    { label: 'Output', icon: '📦', color: 'var(--mist)' },
+                    { label: 'Upload', icon: <Upload size={22} style={{ color: 'var(--refine)' }} />, color: 'var(--refine)' },
+                    { label: 'Redis Queue', icon: <Zap size={22} style={{ color: 'var(--signal)' }} />, color: 'var(--signal)' },
+                    { label: 'Worker', icon: <Cpu size={22} style={{ color: 'var(--ingest)' }} />, color: 'var(--ingest)' },
+                    { label: 'Validator', icon: <Check size={24} style={{ color: '#10b981' }} />, color: '#10b981' },
+                    { label: 'Output', icon: <Package size={22} style={{ color: 'var(--mist)' }} />, color: 'var(--mist)' },
                   ].map((step, i) => (
                     <div key={step.label} style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, flex: 1 }}>
@@ -895,12 +908,12 @@ function WorkspaceDashboard() {
               <SectionCard title="Validation Rules Applied" delay={90}>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
                   {[
-                    { label: 'Country Detection', value: 'Inferred from country_code column', icon: '🌍', color: '#4c8dff' },
-                    { label: 'Phone Regex', value: 'Country-specific pattern (e.g., IN: ^\\d{10}$)', icon: '📱', color: '#9b6bff' },
-                    { label: 'Payment Modes', value: 'Allowed modes per country (UPI, CARD, etc.)', icon: '💳', color: '#38bdf8' },
-                    { label: 'Date Format', value: 'Expected format (DD/MM/YYYY, MM/DD/YYYY, etc.)', icon: '📅', color: '#f5b042' },
-                    { label: 'Amount Limits', value: 'Min/max amount validation (0.01-1,000,000.0)', icon: '💰', color: '#eab308' },
-                    { label: 'Quantity Limits', value: 'Min/max quantity validation (1-1000)', icon: '📊', color: '#10b981' },
+                    { label: 'Country Detection', value: 'Inferred from country_code column', icon: <Globe size={18} style={{ color: '#4c8dff' }} />, color: '#4c8dff' },
+                    { label: 'Phone Regex', value: 'Country-specific pattern (e.g., IN: ^\\d{10}$)', icon: <Phone size={18} style={{ color: '#9b6bff' }} />, color: '#9b6bff' },
+                    { label: 'Payment Modes', value: 'Allowed modes per country (UPI, CARD, etc.)', icon: <CreditCard size={18} style={{ color: '#38bdf8' }} />, color: '#38bdf8' },
+                    { label: 'Date Format', value: 'Expected format (DD/MM/YYYY, MM/DD/YYYY, etc.)', icon: <Calendar size={18} style={{ color: '#f5b042' }} />, color: '#f5b042' },
+                    { label: 'Amount Limits', value: 'Min/max amount validation (0.01-1,000,000.0)', icon: <DollarSign size={18} style={{ color: '#eab308' }} />, color: '#eab308' },
+                    { label: 'Quantity Limits', value: 'Min/max quantity validation (1-1000)', icon: <BarChart2 size={18} style={{ color: '#10b981' }} />, color: '#10b981' },
                   ].map((rule) => (
                     <div key={rule.label} style={{
                       display: 'flex',
