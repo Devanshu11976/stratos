@@ -1,34 +1,39 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, memo, useCallback } from 'react'
 import { motion, AnimatePresence, useInView } from 'framer-motion'
 import { EASE_OUT, motionDuration } from '@/lib/motion'
 
 /* ─────────────────────────────────────────
    SpotlightLabel — cursor-reactive radial glow on titles
    ───────────────────────────────────────── */
-function SpotlightLabel({ children }: { children: React.ReactNode }) {
+const SpotlightLabel = memo(function SpotlightLabel({ children }: { children: React.ReactNode }) {
   const ref = useRef<HTMLSpanElement>(null)
   const glowRef = useRef<HTMLSpanElement>(null)
   const cachedRect = useRef<DOMRect | null>(null)
   const [hovered, setHovered] = useState(false)
 
-  const onEnter = () => {
+  const onEnter = useCallback(() => {
     if (ref.current) cachedRect.current = ref.current.getBoundingClientRect()
     setHovered(true)
-  }
+  }, [])
 
-  const onMove = (e: React.MouseEvent<HTMLSpanElement>) => {
+  const onMove = useCallback((e: React.MouseEvent<HTMLSpanElement>) => {
     if (!glowRef.current || !cachedRect.current) return
     const rect = cachedRect.current
     glowRef.current.style.background = `radial-gradient(ellipse 110px 70px at ${e.clientX - rect.left}px ${e.clientY - rect.top}px, rgba(76,141,255,0.18) 0%, rgba(155,107,255,0.10) 55%, transparent 80%)`
-  }
+  }, [])
+
+  const onLeave = useCallback(() => {
+    setHovered(false)
+    cachedRect.current = null
+  }, [])
 
   return (
     <span
       ref={ref}
       onMouseEnter={onEnter}
-      onMouseLeave={() => { setHovered(false); cachedRect.current = null }}
+      onMouseLeave={onLeave}
       onMouseMove={onMove}
       style={{ position: 'relative', display: 'inline' }}
     >
@@ -48,7 +53,7 @@ function SpotlightLabel({ children }: { children: React.ReactNode }) {
       />
     </span>
   )
-}
+})
 
 const STAGES = [
   {
@@ -144,7 +149,7 @@ const STAGES = [
 /* ─────────────────────────────────────────
    VisualCard — glassmorphism + hover lift + border glow
    ───────────────────────────────────────── */
-function VisualCard({
+const VisualCard = memo(function VisualCard({
   visual,
   stageColor,
   isInView,
@@ -166,8 +171,8 @@ function VisualCard({
       animate={isInView ? { opacity: 1, scale: 1 } : {}}
       whileHover={{ y: -5 }}
       transition={{
-        opacity: { duration: motionDuration(0.55), ease: EASE_OUT, delay: index * 0.11 + motionDuration(0.2) },
-        scale: { duration: motionDuration(0.55), ease: EASE_OUT, delay: index * 0.11 + motionDuration(0.2) },
+        opacity: { duration: 0.4, ease: EASE_OUT },
+        scale: { duration: 0.4, ease: EASE_OUT },
         y: { type: 'spring', stiffness: 260, damping: 22 },
       }}
       style={{
@@ -187,19 +192,22 @@ function VisualCard({
           : '0 2px 12px rgba(0,0,0,0.2)',
         transition: 'background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease',
         cursor: 'default',
+        willChange: 'transform',
+        transform: 'translateZ(0)',
       }}
     >
       {visual}
     </motion.div>
   )
-}
+})
 
 /* ─────────────────────────────────────────
    Stage row — scan line + spotlight title
    ───────────────────────────────────────── */
-function Stage({ stage, index }: { stage: (typeof STAGES)[0]; index: number }) {
+const Stage = memo(function Stage({ stage, index }: { stage: (typeof STAGES)[0]; index: number }) {
   const ref = useRef<HTMLDivElement>(null)
-  const isInView = useInView(ref, { once: true, margin: '-15% 0px' })
+  // Increased margin from -15% to -40% to trigger animations much earlier
+  const isInView = useInView(ref, { once: true, margin: '-40% 0px', amount: 0.1 })
   const [hovered, setHovered] = useState(false)
 
   return (
@@ -210,7 +218,8 @@ function Stage({ stage, index }: { stage: (typeof STAGES)[0]; index: number }) {
       onMouseLeave={() => setHovered(false)}
       initial={{ opacity: 0, x: -32 }}
       animate={isInView ? { opacity: 1, x: 0 } : {}}
-      transition={{ duration: motionDuration(0.65), ease: EASE_OUT, delay: index * 0.11 }}
+      // Reduced duration from 0.65s to 0.4s, removed delay
+      transition={{ duration: 0.4, ease: EASE_OUT }}
       style={{
         position: 'relative',
         overflow: 'hidden',
@@ -220,41 +229,41 @@ function Stage({ stage, index }: { stage: (typeof STAGES)[0]; index: number }) {
         alignItems: 'center',
         paddingBlock: 48,
         borderTop: '1px solid var(--line-soft)',
+        willChange: 'transform',
+        transform: 'translateZ(0)',
       }}
     >
-      {/* ── Scan line — background wash ── */}
-      <AnimatePresence>
+      {/* ── Scan line — simplified background wash ── */}
+      <AnimatePresence mode="wait">
         {hovered && (
           <motion.span
             aria-hidden
             key="scan-bg"
-            initial={{ scaleX: 0, originX: 0 }}
-            animate={{ scaleX: 1 }}
-            exit={{ opacity: 0, transition: { duration: motionDuration(0.22) } }}
-            transition={{ duration: motionDuration(0.85), ease: EASE_OUT }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
             style={{
               position: 'absolute',
               inset: 0,
               background:
                 'linear-gradient(90deg, rgba(76,141,255,0.055) 0%, rgba(155,107,255,0.055) 60%, transparent 100%)',
               pointerEvents: 'none',
-              willChange: 'transform',
-              zIndex: 0,
             }}
           />
         )}
       </AnimatePresence>
 
-      {/* ── Scan line — top 1px edge ── */}
-      <AnimatePresence>
+      {/* ── Scan line — simplified top 1px edge ── */}
+      <AnimatePresence mode="wait">
         {hovered && (
           <motion.span
             aria-hidden
             key="scan-line"
             initial={{ scaleX: 0, originX: 0 }}
             animate={{ scaleX: 1 }}
-            exit={{ opacity: 0, transition: { duration: motionDuration(0.18) } }}
-            transition={{ duration: motionDuration(0.75), ease: EASE_OUT }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3, ease: EASE_OUT }}
             style={{
               position: 'absolute',
               top: 0,
@@ -265,7 +274,6 @@ function Stage({ stage, index }: { stage: (typeof STAGES)[0]; index: number }) {
                 'linear-gradient(90deg, rgba(76,141,255,0.45) 0%, rgba(155,107,255,0.45) 60%, transparent 100%)',
               pointerEvents: 'none',
               willChange: 'transform',
-              zIndex: 1,
             }}
           />
         )}
@@ -288,16 +296,17 @@ function Stage({ stage, index }: { stage: (typeof STAGES)[0]; index: number }) {
           animate={
             isInView
               ? {
-                  scale: [1, 1.3, 1],
+                  scale: [1, 1.2, 1],
                   boxShadow: [
                     `0 0 0px ${stage.color}`,
-                    `0 0 18px ${stage.color}`,
-                    `0 0 10px ${stage.color}`,
+                    `0 0 12px ${stage.color}`,
+                    `0 0 8px ${stage.color}`,
                   ],
                 }
               : {}
           }
-          transition={{ duration: motionDuration(0.8), ease: 'easeOut', delay: index * 0.11 + motionDuration(0.3) }}
+          // Reduced duration from 0.8s to 0.4s, removed delay
+          transition={{ duration: 0.4, ease: 'easeOut' }}
           style={{
             width: 13,
             height: 13,
@@ -305,7 +314,8 @@ function Stage({ stage, index }: { stage: (typeof STAGES)[0]; index: number }) {
             border: `2px solid ${isInView ? stage.color : 'var(--mist-dim)'}`,
             background: isInView ? stage.color : 'var(--void)',
             flexShrink: 0,
-            transition: 'all 0.5s ease',
+            transition: 'all 0.3s ease',
+            willChange: 'transform',
           }}
         />
         {stage.num}
@@ -316,12 +326,14 @@ function Stage({ stage, index }: { stage: (typeof STAGES)[0]; index: number }) {
         <motion.h3
           initial={{ opacity: 0, y: 12 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: motionDuration(0.5), ease: EASE_OUT, delay: index * 0.11 + motionDuration(0.15) }}
+          // Reduced duration from 0.5s to 0.35s, removed delay
+          transition={{ duration: 0.35, ease: EASE_OUT }}
           style={{
             fontFamily: "'Space Grotesk', sans-serif",
             fontSize: 22,
             fontWeight: 600,
             marginBottom: 10,
+            willChange: 'transform',
           }}
         >
           <SpotlightLabel>{stage.title}</SpotlightLabel>
@@ -329,12 +341,14 @@ function Stage({ stage, index }: { stage: (typeof STAGES)[0]; index: number }) {
         <motion.p
           initial={{ opacity: 0 }}
           animate={isInView ? { opacity: 1 } : {}}
-          transition={{ duration: motionDuration(0.5), delay: index * 0.11 + motionDuration(0.25) }}
+          // Reduced duration from 0.5s to 0.35s, reduced delay
+          transition={{ duration: 0.35, delay: 0.05 }}
           style={{
             color: 'var(--mist)',
             fontSize: 15,
             lineHeight: 1.65,
             maxWidth: 520,
+            willChange: 'transform',
           }}
         >
           {stage.desc}
@@ -354,7 +368,7 @@ function Stage({ stage, index }: { stage: (typeof STAGES)[0]; index: number }) {
   )
 }
 
-export default function Pipeline() {
+const Pipeline = memo(function Pipeline() {
   const railRef = useRef<HTMLDivElement>(null)
   const cometRef = useRef<HTMLDivElement>(null)
 
@@ -410,7 +424,8 @@ export default function Pipeline() {
   }, [])
 
   const headerRef = useRef<HTMLDivElement>(null)
-  const headerInView = useInView(headerRef, { once: true, margin: '-10% 0px' })
+  // Increased margin from -10% to -30% to trigger animations earlier
+  const headerInView = useInView(headerRef, { once: true, margin: '-30% 0px', amount: 0.1 })
 
   return (
     <section
@@ -420,6 +435,8 @@ export default function Pipeline() {
         zIndex: 2,
         paddingBlock: 'clamp(80px, 12vw, 160px)',
         overflow: 'hidden',
+        willChange: 'transform',
+        transform: 'translateZ(0)',
       }}
     >
       <div
@@ -460,6 +477,7 @@ export default function Pipeline() {
             transform: 'translate(-50%, -50%)',
             zIndex: 3,
             pointerEvents: 'none',
+            willChange: 'top',
           }}
         />
 
@@ -468,8 +486,15 @@ export default function Pipeline() {
           ref={headerRef}
           initial={{ opacity: 0, y: 32 }}
           animate={headerInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: motionDuration(0.8), ease: EASE_OUT }}
-          style={{ maxWidth: 600, marginBottom: 88, paddingLeft: 'clamp(24px, 5vw, 56px)' }}
+          // Reduced duration from 0.8s to 0.5s
+          transition={{ duration: 0.5, ease: EASE_OUT }}
+          style={{ 
+            maxWidth: 600, 
+            marginBottom: 88, 
+            paddingLeft: 'clamp(24px, 5vw, 56px)',
+            willChange: 'transform',
+            transform: 'translateZ(0)',
+          }}
         >
           <div
             style={{
@@ -528,4 +553,6 @@ export default function Pipeline() {
       `}</style>
     </section>
   )
-}
+})
+
+export default Pipeline
