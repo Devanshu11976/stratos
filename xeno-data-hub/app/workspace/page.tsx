@@ -7,7 +7,7 @@ import CustomCursor from '@/components/shared/CustomCursor'
 
 import { apiFetch } from '@/lib/api'
 import { cssDuration, cssDurationMs } from '@/lib/motion'
-const POLL_MS  = 3000
+const POLL_MS = 3000
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type JobStatus = 'queued' | 'processing' | 'completed' | 'failed'
@@ -109,61 +109,61 @@ function SectionCard({ title, children, delay = 0 }: { title: string; children: 
 
 function StatusBadge({ status }: { status: JobStatus | 'loading' }) {
   const map: Record<string, [string, string]> = {
-    loading:    ['var(--mist-dim)', 'Connecting…'],
-    queued:     ['var(--signal)',   'Queued'],
-    processing: ['var(--ingest)',   'Processing'],
-    completed:  ['#10b981',        'Completed'],
-    failed:     ['#f87171',        'Failed'],
+    loading: ['var(--mist-dim)', 'Connecting…'],
+    queued: ['var(--signal)', 'Queued'],
+    processing: ['var(--ingest)', 'Processing'],
+    completed: ['#10b981', 'Completed'],
+    failed: ['#f87171', 'Failed'],
   }
   const [c, label] = map[status] ?? map.loading
   const pulse = status === 'queued' || status === 'processing'
   return (
     <div style={{
-      display:'inline-flex', alignItems:'center', gap:8,
-      padding:'8px 18px', borderRadius:100,
-      background:'rgba(255,255,255,0.03)', border:`1px solid ${c}`, color:c,
-      fontFamily:"'IBM Plex Mono',monospace", fontSize:14, fontWeight:600,
-      boxShadow:`0 0 15px -3px ${c}33`,
+      display: 'inline-flex', alignItems: 'center', gap: 8,
+      padding: '8px 18px', borderRadius: 100,
+      background: 'rgba(255,255,255,0.03)', border: `1px solid ${c}`, color: c,
+      fontFamily: "'IBM Plex Mono',monospace", fontSize: 14, fontWeight: 600,
+      boxShadow: `0 0 15px -3px ${c}33`,
     }}>
       <span style={{
-        width:8, height:8, borderRadius:'50%', background:c,
+        width: 8, height: 8, borderRadius: '50%', background: c,
         animation: pulse ? `pulse-dot ${cssDuration(1.5)}s infinite` : 'none',
-        boxShadow:`0 0 8px ${c}`,
-      }}/>
+        boxShadow: `0 0 8px ${c}`,
+      }} />
       {label}
     </div>
   )
 }
 
 function PipelineTracker({ status }: { status: JobStatus | 'loading' }) {
-  const steps = ['Uploaded','Queued','Processing','Finished']
-  const activeIdx = status==='queued'?1 : status==='processing'?2 : status==='completed'?3 : status==='failed'?3 : 0
+  const steps = ['Uploaded', 'Queued', 'Processing', 'Finished']
+  const activeIdx = status === 'queued' ? 1 : status === 'processing' ? 2 : status === 'completed' ? 3 : status === 'failed' ? 3 : 0
   return (
-    <div style={{ display:'flex', justifyContent:'space-between', position:'relative', maxWidth:480, margin:'0 auto 36px' }}>
-      <div style={{ position:'absolute', top:15, left:30, right:30, height:2, background:'var(--line)', zIndex:0 }}/>
+    <div style={{ display: 'flex', justifyContent: 'space-between', position: 'relative', maxWidth: 480, margin: '0 auto 36px' }}>
+      <div style={{ position: 'absolute', top: 15, left: 30, right: 30, height: 2, background: 'var(--line)', zIndex: 0 }} />
       <div style={{
-        position:'absolute', top:15, left:30,
-        width:`${Math.min((activeIdx/3)*100,100)}%`, maxWidth:'calc(100% - 60px)',
-        height:2, background: status==='failed'?'#f87171':'var(--refine)',
-        transition:`width ${cssDuration(0.6)}s ease`, zIndex:0,
-      }}/>
-      {steps.map((label,i)=>{
-        const done   = i < activeIdx || (i===3 && status==='completed')
-        const active = i === activeIdx && status!=='completed' && status!=='failed'
-        const fail   = i===3 && status==='failed'
-        const col    = fail?'#f87171' : (done||active?'var(--refine)':'var(--line)')
+        position: 'absolute', top: 15, left: 30,
+        width: `${Math.min((activeIdx / 3) * 100, 100)}%`, maxWidth: 'calc(100% - 60px)',
+        height: 2, background: status === 'failed' ? '#f87171' : 'var(--refine)',
+        transition: `width ${cssDuration(0.6)}s ease`, zIndex: 0,
+      }} />
+      {steps.map((label, i) => {
+        const done = i < activeIdx || (i === 3 && status === 'completed')
+        const active = i === activeIdx && status !== 'completed' && status !== 'failed'
+        const fail = i === 3 && status === 'failed'
+        const col = fail ? '#f87171' : (done || active ? 'var(--refine)' : 'var(--line)')
         return (
-          <div key={label} style={{ position:'relative', zIndex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:8 }}>
+          <div key={label} style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
             <div style={{
-              width:32, height:32, borderRadius:'50%',
-              background:'#0a0b0e', border:`2px solid ${col}`,
-              display:'flex', alignItems:'center', justifyContent:'center',
-              fontSize:12, color: fail?'#f87171':(done?'var(--refine)':(active?'var(--refine)':'var(--mist-dim)')),
-              transition:'all 0.3s ease',
+              width: 32, height: 32, borderRadius: '50%',
+              background: '#0a0b0e', border: `2px solid ${col}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 12, color: fail ? '#f87171' : (done ? 'var(--refine)' : (active ? 'var(--refine)' : 'var(--mist-dim)')),
+              transition: 'all 0.3s ease',
             }}>
-              {fail?'✗':done?'✓':active?'●':`0${i+1}`}
+              {fail ? '✗' : done ? '✓' : active ? '●' : `0${i + 1}`}
             </div>
-            <span style={{ fontSize:11, color:done||active?'var(--mist)':'var(--mist-dim)', fontFamily:"'Space Grotesk',sans-serif" }}>
+            <span style={{ fontSize: 11, color: done || active ? 'var(--mist)' : 'var(--mist-dim)', fontFamily: "'Space Grotesk',sans-serif" }}>
               {label}
             </span>
           </div>
@@ -181,22 +181,22 @@ function MetricCard({ label, rawValue, display, accent }: {
   const shown = display ?? animated.toLocaleString()
   return (
     <div style={{
-      background:'rgba(255,255,255,0.03)', border:'1px solid var(--line)',
-      borderRadius:16, padding:'22px 18px', textAlign:'center', flex:1, minWidth:120,
-      transition:'border-color 0.2s, background 0.2s',
+      background: 'rgba(255,255,255,0.03)', border: '1px solid var(--line)',
+      borderRadius: 16, padding: '22px 18px', textAlign: 'center', flex: 1, minWidth: 120,
+      transition: 'border-color 0.2s, background 0.2s',
     }}
-    onMouseEnter={e=>{
-      (e.currentTarget as HTMLDivElement).style.borderColor=accent
-      ;(e.currentTarget as HTMLDivElement).style.background=`${accent}0d`
-    }}
-    onMouseLeave={e=>{
-      (e.currentTarget as HTMLDivElement).style.borderColor='var(--line)'
-      ;(e.currentTarget as HTMLDivElement).style.background='rgba(255,255,255,0.03)'
-    }}>
-      <div style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:26, fontWeight:700, color:accent, marginBottom:6 }}>
+      onMouseEnter={e => {
+        (e.currentTarget as HTMLDivElement).style.borderColor = accent
+          ; (e.currentTarget as HTMLDivElement).style.background = `${accent}0d`
+      }}
+      onMouseLeave={e => {
+        (e.currentTarget as HTMLDivElement).style.borderColor = 'var(--line)'
+          ; (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.03)'
+      }}>
+      <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 26, fontWeight: 700, color: accent, marginBottom: 6 }}>
         {shown}
       </div>
-      <div style={{ fontSize:11, color:'var(--mist-dim)', fontFamily:"'Space Grotesk',sans-serif", letterSpacing:'0.05em', textTransform:'uppercase' }}>
+      <div style={{ fontSize: 11, color: 'var(--mist-dim)', fontFamily: "'Space Grotesk',sans-serif", letterSpacing: '0.05em', textTransform: 'uppercase' }}>
         {label}
       </div>
     </div>
@@ -204,20 +204,20 @@ function MetricCard({ label, rawValue, display, accent }: {
 }
 
 function QualityRing({ score }: { score: number }) {
-  const r = 36, circ = 2*Math.PI*r
-  const color = score>=80?'#10b981':score>=60?'var(--signal)':'#f87171'
+  const r = 36, circ = 2 * Math.PI * r
+  const color = score >= 80 ? '#10b981' : score >= 60 ? 'var(--signal)' : '#f87171'
   const animated = useCountUp(Math.round(score), 1200)
   return (
-    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:8 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
       <svg width={96} height={96} viewBox="0 0 96 96">
-        <circle cx={48} cy={48} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={7}/>
+        <circle cx={48} cy={48} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={7} />
         <circle cx={48} cy={48} r={r} fill="none" stroke={color} strokeWidth={7}
-          strokeDasharray={`${(animated/100)*circ} ${circ}`} strokeLinecap="round"
-          transform="rotate(-90 48 48)" style={{ transition:'stroke-dasharray 0.05s linear' }}/>
+          strokeDasharray={`${(animated / 100) * circ} ${circ}`} strokeLinecap="round"
+          transform="rotate(-90 48 48)" style={{ transition: 'stroke-dasharray 0.05s linear' }} />
         <text x={48} y={53} textAnchor="middle" fontSize={18} fontWeight={700} fill={color}
           fontFamily="IBM Plex Mono,monospace">{animated}</text>
       </svg>
-      <span style={{ fontSize:11, color:'var(--mist-dim)', fontFamily:"'Space Grotesk',sans-serif", textTransform:'uppercase', letterSpacing:'0.06em' }}>
+      <span style={{ fontSize: 11, color: 'var(--mist-dim)', fontFamily: "'Space Grotesk',sans-serif", textTransform: 'uppercase', letterSpacing: '0.06em' }}>
         Quality Score
       </span>
     </div>
@@ -225,65 +225,65 @@ function QualityRing({ score }: { score: number }) {
 }
 
 // ─── 1. Country Analysis Cards ────────────────────────────────────────────────
-function CountryAnalysisSection({ countryStats, countryNames }: { countryStats: Record<string,CountryStat>; countryNames: Record<string,string> }) {
+function CountryAnalysisSection({ countryStats, countryNames }: { countryStats: Record<string, CountryStat>; countryNames: Record<string, string> }) {
   const entries = Object.entries(countryStats)
   if (!entries.length) return null
   return (
     <SectionCard title="Country Analysis" delay={80}>
-      <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
         {entries.filter(([code]) => code !== 'XX').map(([code, s]) => {
-          const passRate = s.total ? (s.valid/s.total)*100 : 0
-          const col = passRate>=80?'#10b981':passRate>=60?'var(--signal)':'#f87171'
+          const passRate = s.total ? (s.valid / s.total) * 100 : 0
+          const col = passRate >= 80 ? '#10b981' : passRate >= 60 ? 'var(--signal)' : '#f87171'
           const name = code === 'XX' ? 'Unknown' : (countryNames[code] ?? code)
           return (
             <div key={code}
               style={{
-                flex:'1 1 170px', minWidth:160, maxWidth:220,
-                background:'rgba(255,255,255,0.03)', border:`1px solid ${col}22`,
-                borderRadius:16, padding:'18px 16px',
-                transition:'border-color 0.2s, background 0.2s, transform 0.2s',
-                cursor:'default',
+                flex: '1 1 170px', minWidth: 160, maxWidth: 220,
+                background: 'rgba(255,255,255,0.03)', border: `1px solid ${col}22`,
+                borderRadius: 16, padding: '18px 16px',
+                transition: 'border-color 0.2s, background 0.2s, transform 0.2s',
+                cursor: 'default',
               }}
-              onMouseEnter={e=>{
-                const el=e.currentTarget as HTMLDivElement
-                el.style.borderColor=col; el.style.background=`${col}0d`; el.style.transform='translateY(-2px)'
+              onMouseEnter={e => {
+                const el = e.currentTarget as HTMLDivElement
+                el.style.borderColor = col; el.style.background = `${col}0d`; el.style.transform = 'translateY(-2px)'
               }}
-              onMouseLeave={e=>{
-                const el=e.currentTarget as HTMLDivElement
-                el.style.borderColor=`${col}22`; el.style.background='rgba(255,255,255,0.03)'; el.style.transform='translateY(0)'
+              onMouseLeave={e => {
+                const el = e.currentTarget as HTMLDivElement
+                el.style.borderColor = `${col}22`; el.style.background = 'rgba(255,255,255,0.03)'; el.style.transform = 'translateY(0)'
               }}
             >
-              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
                 <div>
-                  <div style={{ fontFamily:"'Space Grotesk',sans-serif", fontSize:14, fontWeight:600, color:'var(--mist)', marginBottom:2 }}>
+                  <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: 14, fontWeight: 600, color: 'var(--mist)', marginBottom: 2 }}>
                     {name}
                   </div>
-                  <div style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:10, color:'var(--mist-dim)' }}>{code}</div>
+                  <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: 'var(--mist-dim)' }}>{code}</div>
                 </div>
                 <div style={{
-                  fontFamily:"'IBM Plex Mono',monospace", fontSize:11, fontWeight:700,
-                  color:col, background:`${col}18`, padding:'3px 8px', borderRadius:6,
+                  fontFamily: "'IBM Plex Mono',monospace", fontSize: 11, fontWeight: 700,
+                  color: col, background: `${col}18`, padding: '3px 8px', borderRadius: 6,
                 }}>
                   {passRate.toFixed(0)}%
                 </div>
               </div>
-              <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                 {[
-                  ['Total',   s.total,   'var(--refine)'],
-                  ['Valid',   s.valid,   '#10b981'],
+                  ['Total', s.total, 'var(--refine)'],
+                  ['Valid', s.valid, '#10b981'],
                   ['Invalid', s.invalid, '#f87171'],
-                ].map(([lbl,val,ac])=>(
-                  <div key={lbl as string} style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                    <span style={{ fontSize:11, color:'var(--mist-dim)', fontFamily:"'Space Grotesk',sans-serif" }}>{lbl as string}</span>
-                    <span style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:13, fontWeight:600, color:ac as string }}>
+                ].map(([lbl, val, ac]) => (
+                  <div key={lbl as string} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: 11, color: 'var(--mist-dim)', fontFamily: "'Space Grotesk',sans-serif" }}>{lbl as string}</span>
+                    <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 13, fontWeight: 600, color: ac as string }}>
                       {(val as number).toLocaleString()}
                     </span>
                   </div>
                 ))}
               </div>
               {/* Pass-rate bar */}
-              <div style={{ marginTop:12, height:3, borderRadius:2, background:'rgba(255,255,255,0.06)' }}>
-                <div style={{ height:3, borderRadius:2, background:col, width:`${passRate}%`, transition:`width ${cssDuration(0.8)}s ease` }}/>
+              <div style={{ marginTop: 12, height: 3, borderRadius: 2, background: 'rgba(255,255,255,0.06)' }}>
+                <div style={{ height: 3, borderRadius: 2, background: col, width: `${passRate}%`, transition: `width ${cssDuration(0.8)}s ease` }} />
               </div>
             </div>
           )
@@ -337,38 +337,38 @@ function DownloadCard({ icon, label, accent, url, recordCount, fileSizeBytes }: 
 
   return (
     <div style={{
-      flex:'1 1 160px', minWidth:150, textDecoration:'none',
-      display:'flex', flexDirection:'column', gap:10,
-      padding:'16px 18px', borderRadius:14,
+      flex: '1 1 160px', minWidth: 150, textDecoration: 'none',
+      display: 'flex', flexDirection: 'column', gap: 10,
+      padding: '16px 18px', borderRadius: 14,
       background: hov && !isDemo ? `${accent}0f` : 'rgba(255,255,255,0.03)',
-      border:`1px solid ${hov && !isDemo ? accent : `${accent}33`}`,
-      transition:'all 0.18s ease', transform: hov && !isDemo ?'translateY(-2px)':'translateY(0)',
+      border: `1px solid ${hov && !isDemo ? accent : `${accent}33`}`,
+      transition: 'all 0.18s ease', transform: hov && !isDemo ? 'translateY(-2px)' : 'translateY(0)',
       cursor: isDemo ? 'default' : 'pointer',
       opacity: isDemo ? 0.6 : 1,
     }}
-    onMouseEnter={()=>setHov(true)}
-    onMouseLeave={()=>setHov(false)}
-    onClick={!isDemo ? handleDownload : undefined}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      onClick={!isDemo ? handleDownload : undefined}
     >
-      <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-        <span style={{ fontSize:18, lineHeight:1 }}>{downloading ? '⏳' : icon}</span>
-        <span style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:13, fontWeight:600, color:accent }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ fontSize: 18, lineHeight: 1 }}>{downloading ? '⏳' : icon}</span>
+        <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 13, fontWeight: 600, color: accent }}>
           {downloading ? 'Downloading…' : label}
         </span>
         {isDemo && (
-          <span style={{ fontSize:9, fontFamily:"'IBM Plex Mono',monospace", color:'var(--mist-dim)', marginLeft:'auto', letterSpacing:'0.06em', textTransform:'uppercase' }}>
+          <span style={{ fontSize: 9, fontFamily: "'IBM Plex Mono',monospace", color: 'var(--mist-dim)', marginLeft: 'auto', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
             demo
           </span>
         )}
       </div>
-      <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
         {recordCount !== null && (
-          <span style={{ fontSize:11, color:'var(--mist)', fontFamily:"'Space Grotesk',sans-serif" }}>
+          <span style={{ fontSize: 11, color: 'var(--mist)', fontFamily: "'Space Grotesk',sans-serif" }}>
             {recordCount.toLocaleString()} records
           </span>
         )}
         {fileSizeBytes !== null && fileSizeBytes > 0 && (
-          <span style={{ fontSize:10, color:'var(--mist-dim)', fontFamily:"'IBM Plex Mono',monospace" }}>
+          <span style={{ fontSize: 10, color: 'var(--mist-dim)', fontFamily: "'IBM Plex Mono',monospace" }}>
             {fmtBytes(fileSizeBytes)}
           </span>
         )}
@@ -383,28 +383,28 @@ function DownloadCenter({ downloads }: { downloads: Downloads }) {
   if (!hasAny) return null
   return (
     <SectionCard title="Download Results" delay={120}>
-      <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
         {(downloads.clean_transactions_url || downloads.clean_record_count) && (
           <DownloadCard icon="✓" label="Clean Dataset" accent="#10b981"
             url={downloads.clean_transactions_url}
             recordCount={downloads.clean_record_count}
-            fileSizeBytes={downloads.clean_file_size_bytes}/>
+            fileSizeBytes={downloads.clean_file_size_bytes} />
         )}
         {downloads.error_report_url && (
           <DownloadCard icon="⚠" label="Error Report" accent="#f87171"
             url={downloads.error_report_url}
             recordCount={downloads.error_record_count}
-            fileSizeBytes={downloads.error_file_size_bytes}/>
+            fileSizeBytes={downloads.error_file_size_bytes} />
         )}
         {(downloads.error_report_url === null && downloads.error_record_count) && (
           <DownloadCard icon="⚠" label="Error Report" accent="#f87171"
             url={null}
             recordCount={downloads.error_record_count}
-            fileSizeBytes={downloads.error_file_size_bytes}/>
+            fileSizeBytes={downloads.error_file_size_bytes} />
         )}
-        {downloads.chunks.map((c,i)=>(
-          <DownloadCard key={i} icon="▦" label={`Chunk ${i+1}`} accent="var(--ingest)"
-            url={c.url ?? null} recordCount={c.record_count} fileSizeBytes={c.file_size_bytes}/>
+        {downloads.chunks.map((c, i) => (
+          <DownloadCard key={i} icon="▦" label={`Chunk ${i + 1}`} accent="var(--ingest)"
+            url={c.url ?? null} recordCount={c.record_count} fileSizeBytes={c.file_size_bytes} />
         ))}
       </div>
     </SectionCard>
@@ -412,66 +412,66 @@ function DownloadCenter({ downloads }: { downloads: Downloads }) {
 }
 
 // ─── 3. AI Insights — structured layout ──────────────────────────────────────
-function AIInsightsSection({ report, qualityScore, countryNames }: { report: AIReport; qualityScore: number; countryNames: Record<string,string> }) {
+function AIInsightsSection({ report, qualityScore, countryNames }: { report: AIReport; qualityScore: number; countryNames: Record<string, string> }) {
   // Derive highest-error country from country_analysis
-  const highestErrorRegion = Object.entries(report.country_analysis).find(([,v])=>{
-    const s = typeof v==='string'?v:(v as any)?.status??''
-    return s==='failing'
-  })?.[0] ?? Object.entries(report.country_analysis).find(([,v])=>{
-    const s = typeof v==='string'?v:(v as any)?.status??''
-    return s==='warning'
+  const highestErrorRegion = Object.entries(report.country_analysis).find(([, v]) => {
+    const s = typeof v === 'string' ? v : (v as any)?.status ?? ''
+    return s === 'failing'
+  })?.[0] ?? Object.entries(report.country_analysis).find(([, v]) => {
+    const s = typeof v === 'string' ? v : (v as any)?.status ?? ''
+    return s === 'warning'
   })?.[0] ?? null
 
-  const primaryIssues = report.common_errors.slice(0,4).map(e=>
-    `${e.field.replace(/_/g,' ')} (${e.count})`
+  const primaryIssues = report.common_errors.slice(0, 4).map(e =>
+    `${e.field.replace(/_/g, ' ')} (${e.count})`
   )
 
   return (
     <SectionCard title="AI Insights" delay={100}>
       {/* Top row: summary card + quality tile */}
-      <div style={{ display:'flex', gap:12, flexWrap:'wrap', marginBottom:16 }}>
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
         {/* Executive summary */}
         <div style={{
-          flex:'2 1 280px',
-          background:'rgba(155,107,255,0.06)', border:'1px solid rgba(155,107,255,0.18)',
-          borderRadius:14, padding:'18px 20px',
+          flex: '2 1 280px',
+          background: 'rgba(155,107,255,0.06)', border: '1px solid rgba(155,107,255,0.18)',
+          borderRadius: 14, padding: '18px 20px',
         }}>
-          <div style={{ fontSize:10, fontFamily:"'IBM Plex Mono',monospace", color:'rgba(155,107,255,0.7)', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:10 }}>
+          <div style={{ fontSize: 10, fontFamily: "'IBM Plex Mono',monospace", color: 'rgba(155,107,255,0.7)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>
             Executive Summary
           </div>
-          <p style={{ fontSize:13, color:'var(--mist)', lineHeight:1.75, margin:0 }}>
+          <p style={{ fontSize: 13, color: 'var(--mist)', lineHeight: 1.75, margin: 0 }}>
             {report.executive_summary}
           </p>
         </div>
 
         {/* Right column: score + region + action */}
-        <div style={{ flex:'1 1 180px', display:'flex', flexDirection:'column', gap:10 }}>
+        <div style={{ flex: '1 1 180px', display: 'flex', flexDirection: 'column', gap: 10 }}>
           {/* Quality score tile */}
           <div style={{
-            background:'rgba(255,255,255,0.03)', border:'1px solid var(--line)',
-            borderRadius:14, padding:'14px 16px', display:'flex', justifyContent:'space-between', alignItems:'center',
+            background: 'rgba(255,255,255,0.03)', border: '1px solid var(--line)',
+            borderRadius: 14, padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           }}>
-            <span style={{ fontSize:11, color:'var(--mist-dim)', fontFamily:"'Space Grotesk',sans-serif", textTransform:'uppercase', letterSpacing:'0.05em' }}>
+            <span style={{ fontSize: 11, color: 'var(--mist-dim)', fontFamily: "'Space Grotesk',sans-serif", textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Quality Score
             </span>
             <span style={{
-              fontFamily:"'IBM Plex Mono',monospace", fontSize:22, fontWeight:700,
-              color: qualityScore>=80?'#10b981':qualityScore>=60?'var(--signal)':'#f87171',
+              fontFamily: "'IBM Plex Mono',monospace", fontSize: 22, fontWeight: 700,
+              color: qualityScore >= 80 ? '#10b981' : qualityScore >= 60 ? 'var(--signal)' : '#f87171',
             }}>
-              {qualityScore.toFixed(0)}<span style={{ fontSize:13, opacity:0.5 }}>/100</span>
+              {qualityScore.toFixed(0)}<span style={{ fontSize: 13, opacity: 0.5 }}>/100</span>
             </span>
           </div>
 
           {/* Highest error region */}
           {highestErrorRegion && highestErrorRegion !== 'XX' && (
             <div style={{
-              background:'rgba(248,113,113,0.05)', border:'1px solid rgba(248,113,113,0.2)',
-              borderRadius:14, padding:'12px 16px',
+              background: 'rgba(248,113,113,0.05)', border: '1px solid rgba(248,113,113,0.2)',
+              borderRadius: 14, padding: '12px 16px',
             }}>
-              <div style={{ fontSize:10, color:'rgba(248,113,113,0.7)', fontFamily:"'IBM Plex Mono',monospace", letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:4 }}>
+              <div style={{ fontSize: 10, color: 'rgba(248,113,113,0.7)', fontFamily: "'IBM Plex Mono',monospace", letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>
                 Highest Error Region
               </div>
-              <div style={{ fontSize:14, fontWeight:600, color:'#f87171', fontFamily:"'Space Grotesk',sans-serif" }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#f87171', fontFamily: "'Space Grotesk',sans-serif" }}>
                 {(highestErrorRegion && highestErrorRegion !== 'XX') ? (countryNames[highestErrorRegion] ?? highestErrorRegion) : 'Unknown'}
               </div>
             </div>
@@ -481,19 +481,19 @@ function AIInsightsSection({ report, qualityScore, countryNames }: { report: AIR
 
       {/* Primary issues */}
       {primaryIssues.length > 0 && (
-        <div style={{ marginBottom:16 }}>
-          <div style={{ fontSize:10, color:'var(--mist-dim)', fontFamily:"'IBM Plex Mono',monospace", letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:10 }}>
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 10, color: 'var(--mist-dim)', fontFamily: "'IBM Plex Mono',monospace", letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>
             Primary Issues
           </div>
-          <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-            {primaryIssues.map((issue,i)=>(
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {primaryIssues.map((issue, i) => (
               <div key={i} style={{
-                display:'flex', alignItems:'center', gap:6,
-                padding:'6px 12px', borderRadius:8,
-                background:'rgba(248,113,113,0.07)', border:'1px solid rgba(248,113,113,0.2)',
-                fontSize:12, color:'#f87171', fontFamily:"'Space Grotesk',sans-serif",
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '6px 12px', borderRadius: 8,
+                background: 'rgba(248,113,113,0.07)', border: '1px solid rgba(248,113,113,0.2)',
+                fontSize: 12, color: '#f87171', fontFamily: "'Space Grotesk',sans-serif",
               }}>
-                <span style={{ opacity:0.6 }}>•</span> {issue}
+                <span style={{ opacity: 0.6 }}>•</span> {issue}
               </div>
             ))}
           </div>
@@ -502,33 +502,33 @@ function AIInsightsSection({ report, qualityScore, countryNames }: { report: AIR
 
       {/* Top errors table */}
       {report.common_errors.length > 0 && (
-        <div style={{ marginBottom:16 }}>
-          <div style={{ fontSize:10, color:'var(--mist-dim)', fontFamily:"'IBM Plex Mono',monospace", letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:10 }}>
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 10, color: 'var(--mist-dim)', fontFamily: "'IBM Plex Mono',monospace", letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>
             Error Distribution
           </div>
-          <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
-            {report.common_errors.slice(0,6).map((e,i)=>{
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+            {report.common_errors.slice(0, 6).map((e, i) => {
               const maxCount = report.common_errors[0]?.count ?? 1
-              const pct = Math.round((e.count/maxCount)*100)
+              const pct = Math.round((e.count / maxCount) * 100)
               return (
                 <div key={i} style={{
-                padding:'10px 14px', borderRadius:10,
-                background:'rgba(255,255,255,0.025)', border:'1px solid var(--line-soft)',
-                overflow:'hidden',
-              }}>
-                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
-                    <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-                      <span style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:11, color:'var(--signal)', background:'rgba(255,184,0,0.1)', padding:'2px 6px', borderRadius:4 }}>
+                  padding: '10px 14px', borderRadius: 10,
+                  background: 'rgba(255,255,255,0.025)', border: '1px solid var(--line-soft)',
+                  overflow: 'hidden',
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 11, color: 'var(--signal)', background: 'rgba(255,184,0,0.1)', padding: '2px 6px', borderRadius: 4 }}>
                         {e.field}
                       </span>
-                      <span style={{ fontSize:12, color:'var(--mist)' }}>{e.error}</span>
+                      <span style={{ fontSize: 12, color: 'var(--mist)' }}>{e.error}</span>
                     </div>
-                    <span style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:12, color:'#f87171', background:'rgba(248,113,113,0.1)', padding:'2px 8px', borderRadius:6, flexShrink:0 }}>
+                    <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 12, color: '#f87171', background: 'rgba(248,113,113,0.1)', padding: '2px 8px', borderRadius: 6, flexShrink: 0 }}>
                       {e.count.toLocaleString()}
                     </span>
                   </div>
-                  <div style={{ height:2, borderRadius:1, background:'rgba(255,255,255,0.05)', overflow:'hidden' }}>
-                    <div style={{ height:2, borderRadius:1, background:'#f87171', width:`${pct}%`, maxWidth:'100%', transition:`width ${cssDuration(0.6)}s ease` }}/>
+                  <div style={{ height: 2, borderRadius: 1, background: 'rgba(255,255,255,0.05)', overflow: 'hidden' }}>
+                    <div style={{ height: 2, borderRadius: 1, background: '#f87171', width: `${pct}%`, maxWidth: '100%', transition: `width ${cssDuration(0.6)}s ease` }} />
                   </div>
                 </div>
               )
@@ -540,16 +540,16 @@ function AIInsightsSection({ report, qualityScore, countryNames }: { report: AIR
       {/* Recommendations */}
       {report.recommendations.length > 0 && (
         <div>
-          <div style={{ fontSize:10, color:'var(--mist-dim)', fontFamily:"'IBM Plex Mono',monospace", letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:10 }}>
+          <div style={{ fontSize: 10, color: 'var(--mist-dim)', fontFamily: "'IBM Plex Mono',monospace", letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>
             Recommended Actions
           </div>
-          <div style={{ display:'flex', flexDirection:'column', gap:7 }}>
-            {report.recommendations.map((rec,i)=>(
-              <div key={i} style={{ display:'flex', gap:10, alignItems:'flex-start' }}>
-                <span style={{ color:'var(--refine)', fontFamily:"'IBM Plex Mono',monospace", fontSize:11, paddingTop:2, flexShrink:0 }}>
-                  {String(i+1).padStart(2,'0')}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+            {report.recommendations.map((rec, i) => (
+              <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                <span style={{ color: 'var(--refine)', fontFamily: "'IBM Plex Mono',monospace", fontSize: 11, paddingTop: 2, flexShrink: 0 }}>
+                  {String(i + 1).padStart(2, '0')}
                 </span>
-                <span style={{ fontSize:13, color:'var(--mist)', lineHeight:1.65 }}>{rec}</span>
+                <span style={{ fontSize: 13, color: 'var(--mist)', lineHeight: 1.65 }}>{rec}</span>
               </div>
             ))}
           </div>
@@ -564,18 +564,18 @@ function PerfTile({ label, value, sub }: { label: string; value: string; sub?: s
   const [hov, setHov] = useState(false)
   return (
     <div style={{
-      flex:'1 1 130px', minWidth:120,
+      flex: '1 1 130px', minWidth: 120,
       background: hov ? 'rgba(155,107,255,0.06)' : 'rgba(255,255,255,0.03)',
       border: `1px solid ${hov ? 'rgba(155,107,255,0.35)' : 'var(--line)'}`,
-      borderRadius:14, padding:'18px 16px', textAlign:'center',
-      transition:'all 0.18s ease', transform: hov?'translateY(-2px)':'translateY(0)',
+      borderRadius: 14, padding: '18px 16px', textAlign: 'center',
+      transition: 'all 0.18s ease', transform: hov ? 'translateY(-2px)' : 'translateY(0)',
     }}
-    onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}>
-      <div style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:22, fontWeight:700, color:'var(--refine)', marginBottom:4 }}>
+      onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}>
+      <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 22, fontWeight: 700, color: 'var(--refine)', marginBottom: 4 }}>
         {value}
       </div>
-      {sub && <div style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:10, color:'var(--mist-dim)', marginBottom:4 }}>{sub}</div>}
-      <div style={{ fontSize:10, color:'var(--mist-dim)', fontFamily:"'Space Grotesk',sans-serif", textTransform:'uppercase', letterSpacing:'0.06em' }}>
+      {sub && <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: 'var(--mist-dim)', marginBottom: 4 }}>{sub}</div>}
+      <div style={{ fontSize: 10, color: 'var(--mist-dim)', fontFamily: "'Space Grotesk',sans-serif", textTransform: 'uppercase', letterSpacing: '0.06em' }}>
         {label}
       </div>
     </div>
@@ -587,14 +587,14 @@ function PipelinePerformance({ job, downloads }: { job: JobDetails; downloads: D
   const total = job.total_records ?? 0
   const rps = ms > 0 && total > 0 ? Math.round((total / ms) * 1000) : null
   const countries = Object.keys(job.country_stats).length
-  const ruleCount = Object.values(job.validation_breakdown).reduce((a,b)=>a+b, 0)
+  const ruleCount = Object.values(job.validation_breakdown).reduce((a, b) => a + b, 0)
   const chunks = downloads?.chunks.length ?? 0
 
   return (
     <SectionCard title="Pipeline Performance" delay={60}>
-      <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
         <PerfTile label="Processing Time" value={ms ? fmtMs(ms) : '—'} />
-        <PerfTile label="Records / Second" value={rps ? rps.toLocaleString() : '—'} sub="rec/s"/>
+        <PerfTile label="Records / Second" value={rps ? rps.toLocaleString() : '—'} sub="rec/s" />
         <PerfTile label="Countries Detected" value={countries ? countries.toString() : '—'} />
         <PerfTile label="Validation Checks" value={ruleCount ? `${ruleCount.toLocaleString()}+` : '—'} />
         <PerfTile label="Chunks Generated" value={chunks ? chunks.toString() : '0'} />
@@ -609,11 +609,11 @@ function WorkspaceDashboard() {
   const jobId = searchParams.get('job_id')
   const isDemo = searchParams.get('demo') === 'true'
 
-  const [job,       setJob]       = useState<JobDetails | null>(null)
-  const [report,    setReport]    = useState<AIReport | null>(null)
+  const [job, setJob] = useState<JobDetails | null>(null)
+  const [report, setReport] = useState<AIReport | null>(null)
   const [downloads, setDownloads] = useState<Downloads | null>(null)
-  const [status,    setStatus]    = useState<JobStatus | 'loading'>('loading')
-  const [error,     setError]     = useState('')
+  const [status, setStatus] = useState<JobStatus | 'loading'>('loading')
+  const [error, setError] = useState('')
   const terminalRef = useRef(false)
   const [countryNames, setCountryNames] = useState<Record<string, string>>({})
 
@@ -626,7 +626,7 @@ function WorkspaceDashboard() {
         rules.forEach(r => { map[r.country_code.toUpperCase()] = r.country_name })
         setCountryNames(map)
       })
-      .catch(() => {})
+      .catch(() => { })
   }, [])
 
   // ── Demo mode: skip all API calls, load mock data immediately ──
@@ -690,59 +690,59 @@ function WorkspaceDashboard() {
   const qualityScore = report?.quality_score ?? null
 
   return (
-    <div style={{ position:'relative', minHeight:'100vh', paddingTop:100, paddingBottom:80, paddingInline:20, zIndex:2 }}>
+    <div style={{ position: 'relative', minHeight: '100vh', paddingTop: 100, paddingBottom: 80, paddingInline: 20, zIndex: 2 }}>
       <CustomCursor />
-      <div className="bg-grid"/>
-      <div className="spotlight" style={{ background:'radial-gradient(800px circle at 50% 20%, rgba(155,107,255,0.07), transparent 60%)' }}/>
+      <div className="bg-grid" />
+      <div className="spotlight" style={{ background: 'radial-gradient(800px circle at 50% 20%, rgba(155,107,255,0.07), transparent 60%)' }} />
 
-      <div style={{ width:'100%', maxWidth:880, margin:'0 auto' }}>
+      <div style={{ width: '100%', maxWidth: 880, margin: '0 auto' }}>
 
         {/* Header */}
-        <div style={{ textAlign:'center', marginBottom:36 }}>
-          <h1 style={{ fontFamily:"'Space Grotesk',sans-serif", fontSize:28, fontWeight:600, marginBottom:10 }}>
+        <div style={{ textAlign: 'center', marginBottom: 36 }}>
+          <h1 style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: 28, fontWeight: 600, marginBottom: 10 }}>
             Validation Workspace
           </h1>
           {/* Demo badge */}
           {isDemo && (
             <div style={{
-              display:'inline-flex', alignItems:'center', gap:6,
-              fontFamily:"'IBM Plex Mono',monospace", fontSize:11,
-              color:'var(--signal)', background:'rgba(245,176,66,0.08)',
-              padding:'4px 12px', borderRadius:6, border:'1px solid rgba(245,176,66,0.25)',
-              marginBottom:10, letterSpacing:'0.06em', textTransform:'uppercase',
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              fontFamily: "'IBM Plex Mono',monospace", fontSize: 11,
+              color: 'var(--signal)', background: 'rgba(245,176,66,0.08)',
+              padding: '4px 12px', borderRadius: 6, border: '1px solid rgba(245,176,66,0.25)',
+              marginBottom: 10, letterSpacing: '0.06em', textTransform: 'uppercase',
             }}>
-              <span style={{ width:5, height:5, borderRadius:'50%', background:'var(--signal)', boxShadow:'0 0 6px var(--signal)', display:'inline-block' }}/>
+              <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--signal)', boxShadow: '0 0 6px var(--signal)', display: 'inline-block' }} />
               Demo Mode
             </div>
           )}
           {!isDemo && jobId && (
             <div style={{
-              display:'inline-block', fontFamily:"'IBM Plex Mono',monospace", fontSize:12,
-              color:'var(--mist)', background:'rgba(255,255,255,0.04)',
-              padding:'5px 12px', borderRadius:6, border:'1px solid var(--line-soft)', marginBottom:20,
+              display: 'inline-block', fontFamily: "'IBM Plex Mono',monospace", fontSize: 12,
+              color: 'var(--mist)', background: 'rgba(255,255,255,0.04)',
+              padding: '5px 12px', borderRadius: 6, border: '1px solid var(--line-soft)', marginBottom: 20,
             }}>{jobId}</div>
           )}
-          <div><StatusBadge status={status}/></div>
+          <div><StatusBadge status={status} /></div>
         </div>
 
         {/* Pipeline tracker */}
         <div id="pipeline">
-          {status !== 'loading' && <PipelineTracker status={status as JobStatus}/>}
+          {status !== 'loading' && <PipelineTracker status={status as JobStatus} />}
         </div>
 
         {/* Loading */}
         {status === 'loading' && (
-          <div style={{ textAlign:'center', paddingBlock:60 }}>
-            <div style={{ width:44, height:44, border:'3px solid var(--line)', borderTopColor:'var(--refine)', borderRadius:'50%', animation:'spin 1s linear infinite', margin:'0 auto 16px' }}/>
-            <p style={{ color:'var(--mist)', fontSize:14 }}>Connecting to validation pipeline…</p>
+          <div style={{ textAlign: 'center', paddingBlock: 60 }}>
+            <div style={{ width: 44, height: 44, border: '3px solid var(--line)', borderTopColor: 'var(--refine)', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }} />
+            <p style={{ color: 'var(--mist)', fontSize: 14 }}>Connecting to validation pipeline…</p>
           </div>
         )}
 
         {/* In-progress */}
-        {(status==='queued'||status==='processing') && (
+        {(status === 'queued' || status === 'processing') && (
           <FadeIn>
-            <div style={{ background:'rgba(255,255,255,0.015)', border:'1px solid var(--line-soft)', borderRadius:16, padding:'24px 20px', textAlign:'center', color:'var(--mist)', fontSize:14, lineHeight:1.7, marginBottom:16 }}>
-              {status==='queued'
+            <div style={{ background: 'rgba(255,255,255,0.015)', border: '1px solid var(--line-soft)', borderRadius: 16, padding: '24px 20px', textAlign: 'center', color: 'var(--mist)', fontSize: 14, lineHeight: 1.7, marginBottom: 16 }}>
+              {status === 'queued'
                 ? 'Waiting in the Redis task queue for an available worker…'
                 : 'Running Polars validation — checking phone formats, date rules, duplicates, and generating output files…'}
             </div>
@@ -752,9 +752,9 @@ function WorkspaceDashboard() {
         {/* Failed */}
         {status === 'failed' && (
           <FadeIn>
-            <div style={{ background:'rgba(248,113,113,0.06)', border:'1px solid rgba(248,113,113,0.3)', borderRadius:16, padding:'24px 20px', textAlign:'center', color:'#f87171', fontSize:14, lineHeight:1.7, marginBottom:16 }}>
-              <div style={{ fontWeight:600, marginBottom:4 }}>Pipeline failed</div>
-              <div style={{ opacity:0.8, fontSize:13 }}>{error || 'An error occurred during processing.'}</div>
+            <div style={{ background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.3)', borderRadius: 16, padding: '24px 20px', textAlign: 'center', color: '#f87171', fontSize: 14, lineHeight: 1.7, marginBottom: 16 }}>
+              <div style={{ fontWeight: 600, marginBottom: 4 }}>Pipeline failed</div>
+              <div style={{ opacity: 0.8, fontSize: 13 }}>{error || 'An error occurred during processing.'}</div>
             </div>
           </FadeIn>
         )}
@@ -765,27 +765,27 @@ function WorkspaceDashboard() {
             {/* Processing Metrics */}
             <FadeIn delay={0}>
               <div style={{
-                background:'rgba(255,255,255,0.025)', border:'1px solid var(--line)',
-                borderRadius:20, padding:'28px 24px', marginBottom:16,
+                background: 'rgba(255,255,255,0.025)', border: '1px solid var(--line)',
+                borderRadius: 20, padding: '28px 24px', marginBottom: 16,
               }}>
-                <h3 style={{ fontFamily:"'Space Grotesk',sans-serif", fontSize:11, fontWeight:700, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--mist-dim)', marginBottom:20 }}>
+                <h3 style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--mist-dim)', marginBottom: 20 }}>
                   Processing Metrics
                 </h3>
-                <div style={{ display:'flex', gap:12, flexWrap:'wrap', alignItems:'flex-start' }}>
+                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-start' }}>
                   {qualityScore !== null && (
-                    <div style={{ display:'flex', justifyContent:'center', paddingRight:8 }}>
-                      <QualityRing score={qualityScore}/>
+                    <div style={{ display: 'flex', justifyContent: 'center', paddingRight: 8 }}>
+                      <QualityRing score={qualityScore} />
                     </div>
                   )}
-                  <div style={{ display:'flex', gap:10, flexWrap:'wrap', flex:1 }}>
-                    <MetricCard label="Total Records"   rawValue={job.total_records??0}   accent="var(--refine)"/>
-                    <MetricCard label="Valid Records"   rawValue={job.valid_records??0}    accent="#10b981"/>
-                    <MetricCard label="Invalid Records" rawValue={job.invalid_records??0}  accent="#f87171"/>
-                    {(job.total_records??0) > 0 && job.valid_records !== null && (
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', flex: 1 }}>
+                    <MetricCard label="Total Records" rawValue={job.total_records ?? 0} accent="var(--refine)" />
+                    <MetricCard label="Valid Records" rawValue={job.valid_records ?? 0} accent="#10b981" />
+                    <MetricCard label="Invalid Records" rawValue={job.invalid_records ?? 0} accent="#f87171" />
+                    {(job.total_records ?? 0) > 0 && job.valid_records !== null && (
                       <MetricCard
                         label="Pass Rate"
-                        rawValue={Math.round((job.valid_records/(job.total_records??1))*100)}
-                        display={`${((job.valid_records/(job.total_records??1))*100).toFixed(1)}%`}
+                        rawValue={Math.round((job.valid_records / (job.total_records ?? 1)) * 100)}
+                        display={`${((job.valid_records / (job.total_records ?? 1)) * 100).toFixed(1)}%`}
                         accent="var(--ingest)"
                       />
                     )}
@@ -795,11 +795,11 @@ function WorkspaceDashboard() {
             </FadeIn>
 
             {/* Pipeline Performance */}
-            <PipelinePerformance job={job} downloads={downloads}/>
+            <PipelinePerformance job={job} downloads={downloads} />
 
             {/* Country Analysis */}
             {Object.keys(job.country_stats).length > 0 && (
-              <CountryAnalysisSection countryStats={job.country_stats} countryNames={countryNames}/>
+              <CountryAnalysisSection countryStats={job.country_stats} countryNames={countryNames} />
             )}
 
             {/* Architecture */}
@@ -839,9 +839,9 @@ function WorkspaceDashboard() {
                         }}>
                         {step.icon}
                       </div>
-                      <span style={{ fontSize: 12, color: 'var(--mist)', fontFamily: "'Space Grotesk', sans-serif', fontWeight: 700 }}>
-                        {step.label}
-                      </span>
+                     <span style={{ fontSize: 12, color: 'var(--mist)', fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700 }}>
+  {step.label}
+</span>
                       {i < 4 && (
                         <div style={{
                           width: 32,
@@ -926,14 +926,14 @@ function WorkspaceDashboard() {
                       transition: 'all 0.2s ease',
                       cursor: 'default',
                     }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = `${rule.color}08`
-                      e.currentTarget.style.boxShadow = `0 0 12px ${rule.color}20`
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'rgba(255,255,255,0.02)'
-                      e.currentTarget.style.boxShadow = 'none'
-                    }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = `${rule.color}08`
+                        e.currentTarget.style.boxShadow = `0 0 12px ${rule.color}20`
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'rgba(255,255,255,0.02)'
+                        e.currentTarget.style.boxShadow = 'none'
+                      }}
                     >
                       <div style={{
                         width: 40,
@@ -970,11 +970,11 @@ function WorkspaceDashboard() {
 
             {/* AI Insights */}
             <div id="insights">
-              {report && <AIInsightsSection report={report} qualityScore={qualityScore??0} countryNames={countryNames}/>}
+              {report && <AIInsightsSection report={report} qualityScore={qualityScore ?? 0} countryNames={countryNames} />}
             </div>
 
             {/* Downloads */}
-            {downloads && <DownloadCenter downloads={downloads}/>}
+            {downloads && <DownloadCenter downloads={downloads} />}
           </>
         )}
       </div>
@@ -1015,15 +1015,16 @@ function WorkspaceDashboard() {
 export default function WorkspacePage() {
   return (
     <>
-      <Navbar/>
+      <Navbar />
       <Suspense fallback={
-        <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center',
-          background:'#0a0b0e', color:'var(--mist)', fontFamily:'sans-serif", fontSize:14 }}>
+        <div style={{
+          minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: '#0a0b0e', color: 'var(--mist)', fontFamily: 'sans-serif", fontSize:14 }}>
           Loading workspace…
-        </div>
+    </div >
       }>
-        <WorkspaceDashboard/>
-      </Suspense>
+  <WorkspaceDashboard />
+      </Suspense >
     </>
   )
 }
