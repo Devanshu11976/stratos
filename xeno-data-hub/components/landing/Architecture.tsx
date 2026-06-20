@@ -571,13 +571,15 @@ export default function Architecture() {
             padding-bottom: 0 !important;
             margin-inline: 0 !important;
             padding-inline: 0 !important;
+            display: flex !important;
+            justify-content: center !important;
           }
           .architecture-svg {
             min-width: auto !important;
             max-width: 140% !important;
             width: 140% !important;
             height: auto !important;
-            transform: translateX(-14%) !important;
+            transform: none !important;
           }
         }
         @media (max-width: 480px) {
