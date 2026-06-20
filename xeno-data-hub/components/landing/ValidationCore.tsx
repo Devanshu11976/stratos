@@ -71,7 +71,7 @@ export default function ValidationCore({ intensity = 0 }: ValidationCoreProps) {
         const cBlue = { r: 76 / 255, g: 141 / 255, b: 255 / 255 }
         const cPurple = { r: 155 / 255, g: 107 / 255, b: 255 / 255 }
         const cGold = { r: 245 / 255, g: 176 / 255, b: 66 / 255 }
-        const animSpeed = 0.55
+        const animSpeed = 0.825 // Increased by 1.5x from 0.55 for faster particle motion
 
         const waitForDimensions = (): Promise<{ w: number; h: number }> => {
             return new Promise((resolve) => {
@@ -144,9 +144,12 @@ export default function ValidationCore({ intensity = 0 }: ValidationCoreProps) {
                 camera = new THREE.PerspectiveCamera(55, w / h, 0.1, 100)
                 camera.position.z = 18
 
-                renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true })
+                renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, powerPreference: 'high-performance' })
                 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
                 renderer.setSize(w, h)
+                // Enable hardware acceleration
+                renderer.domElement.style.transform = 'translateZ(0)'
+                renderer.domElement.style.willChange = 'transform'
 
                 reactorGroup = new THREE.Group()
                 scene.add(reactorGroup)
@@ -238,25 +241,36 @@ export default function ValidationCore({ intensity = 0 }: ValidationCoreProps) {
                 scene.add(points)
 
                 const heroSection = canvas.parentElement
-                let scrollEndTimer: ReturnType<typeof setTimeout> | null = null
+                let lastScrollY = 0
+                let scrollThrottleTimer: ReturnType<typeof setTimeout> | null = null
 
                 const onScroll = () => {
                     if (!heroSection) return
+                    
+                    const currentScrollY = window.scrollY
+                    // Throttle scroll events to reduce processing frequency
+                    if (Math.abs(currentScrollY - lastScrollY) < 5 && scrollThrottleTimer) return
+                    lastScrollY = currentScrollY
+                    
                     if (window.scrollY < 60) {
                         targetOrder = 0
                         return
                     }
-                    if (scrollEndTimer) clearTimeout(scrollEndTimer)
-                    scrollEndTimer = setTimeout(() => {
-                        if (disposed || !heroSection) return
-                        const rect = heroSection.getBoundingClientRect()
-                        if (rect.height <= 0) return
-                        const progress = Math.min(
-                            1,
-                            Math.max(0, -rect.top / (rect.height * 0.6))
-                        )
-                        if (!isNaN(progress)) targetOrder = progress
-                    }, 150)
+                    
+                    // Use throttling instead of debounce for more responsive feel
+                    if (!scrollThrottleTimer) {
+                        scrollThrottleTimer = setTimeout(() => {
+                            scrollThrottleTimer = null
+                            if (disposed || !heroSection) return
+                            const rect = heroSection.getBoundingClientRect()
+                            if (rect.height <= 0) return
+                            const progress = Math.min(
+                                1,
+                                Math.max(0, -rect.top / (rect.height * 0.6))
+                            )
+                            if (!isNaN(progress)) targetOrder = progress
+                        }, 50) // Reduced from 150ms to 50ms for better responsiveness
+                    }
                 }
 
                 const onMouseMove = (e: MouseEvent) => {
@@ -268,7 +282,7 @@ export default function ValidationCore({ intensity = 0 }: ValidationCoreProps) {
                 window.addEventListener('mousemove', onMouseMove, { passive: true })
                 removeScrollEnd = () => {
                     window.removeEventListener('scroll', onScroll)
-                    if (scrollEndTimer) clearTimeout(scrollEndTimer)
+                    if (scrollThrottleTimer) clearTimeout(scrollThrottleTimer)
                 }
                 removeMouseMove = () => window.removeEventListener('mousemove', onMouseMove)
 
@@ -309,29 +323,34 @@ export default function ValidationCore({ intensity = 0 }: ValidationCoreProps) {
                     orderFactor += (targetOrder - orderFactor) * lerpSpeed
                     if (orderFactor < 0.015) orderFactor = 0
                     const currentIntensity = intensityRef.current
+                    
+                    // Cache frequently used values to avoid redundant calculations
+                    const rotSpeedMult = 1 + currentIntensity * 2
+                    const animSpeedDt = animSpeed * dt
+                    const oneMinusOrderFactor = 1 - orderFactor
+                    const pullBase = 18 // Cache constant for pull calculation
 
                     if (reactorGroup) {
                         reactorGroup.position.set(coreX, coreY, 0)
-                        reactorGroup.scale.setScalar(1 - orderFactor)
+                        reactorGroup.scale.setScalar(oneMinusOrderFactor)
                     }
 
-                    const rotSpeedMult = 1 + currentIntensity * 2
                     if (innerRing) {
-                        innerRing.rotation.x += dt * 0.8 * rotSpeedMult * animSpeed
-                        innerRing.rotation.y += dt * 1.2 * rotSpeedMult * animSpeed
+                        innerRing.rotation.x += animSpeedDt * 0.8 * rotSpeedMult
+                        innerRing.rotation.y += animSpeedDt * 1.2 * rotSpeedMult
                     }
                     if (middleRing) {
-                        middleRing.rotation.y -= dt * 1.0 * rotSpeedMult * animSpeed
-                        middleRing.rotation.z += dt * 0.5 * rotSpeedMult * animSpeed
+                        middleRing.rotation.y -= animSpeedDt * 1.0 * rotSpeedMult
+                        middleRing.rotation.z += animSpeedDt * 0.5 * rotSpeedMult
                     }
                     if (outerRing) {
-                        outerRing.rotation.x -= dt * 0.6 * rotSpeedMult * animSpeed
-                        outerRing.rotation.z -= dt * 1.4 * rotSpeedMult * animSpeed
+                        outerRing.rotation.x -= animSpeedDt * 0.6 * rotSpeedMult
+                        outerRing.rotation.z -= animSpeedDt * 1.4 * rotSpeedMult
                     }
 
-                    if (innerRingMat) innerRingMat.opacity = 0.55 * (1 - orderFactor) * (1 + currentIntensity * 0.45)
-                    if (middleRingMat) middleRingMat.opacity = 0.5 * (1 - orderFactor) * (1 + currentIntensity * 0.5)
-                    if (outerRingMat) outerRingMat.opacity = 0.45 * (1 - orderFactor) * (1 + currentIntensity * 0.55)
+                    if (innerRingMat) innerRingMat.opacity = 0.55 * oneMinusOrderFactor * (1 + currentIntensity * 0.45)
+                    if (middleRingMat) middleRingMat.opacity = 0.5 * oneMinusOrderFactor * (1 + currentIntensity * 0.5)
+                    if (outerRingMat) outerRingMat.opacity = 0.45 * oneMinusOrderFactor * (1 + currentIntensity * 0.55)
 
                     for (let i = 0; i < COUNT; i++) {
                         const ix = i * 3
@@ -356,7 +375,8 @@ export default function ValidationCore({ intensity = 0 }: ValidationCoreProps) {
                         let fz = baseZ[i]
 
                         const dx = fx - coreX
-                        const pull = Math.exp(-(dx * dx) / 18)
+                        const dxSquared = dx * dx
+                        const pull = Math.exp(-dxSquared / pullBase)
 
                         fy = fy * (1 - pull) + coreY * pull
                         fz = fz * (1 - pull)
@@ -364,12 +384,15 @@ export default function ValidationCore({ intensity = 0 }: ValidationCoreProps) {
                         if (pull > 0.01) {
                             const swirlSpeed = now * 0.002 + noisePhase[i]
                             const swirlRadius = (1.5 + Math.sin(now * 0.0006 + noisePhase[i]) * 0.3) * pull
-                            fy += Math.sin(swirlSpeed) * swirlRadius
-                            fz += Math.cos(swirlSpeed) * swirlRadius
+                            const sinSwirl = Math.sin(swirlSpeed)
+                            const cosSwirl = Math.cos(swirlSpeed)
+                            fy += sinSwirl * swirlRadius
+                            fz += cosSwirl * swirlRadius
                         }
 
                         const wiggle = (1 - pull) * 0.35
-                        const ny = Math.sin(now * 0.0006 + noisePhase[i]) * wiggle
+                        const noiseSpeed = 0.0006
+                        const ny = Math.sin(now * noiseSpeed + noisePhase[i]) * wiggle
                         const nz = Math.cos(now * 0.0009 + noisePhase[i]) * wiggle
 
                         const flowX = fx
@@ -427,7 +450,7 @@ export default function ValidationCore({ intensity = 0 }: ValidationCoreProps) {
                     posAttr.needsUpdate = true
                     colorAttr.needsUpdate = true
 
-                    material.size = (0.16 + currentIntensity * 0.14) * (1 - orderFactor * 0.3)
+                    material.size = (0.16 + currentIntensity * 0.14) * oneMinusOrderFactor * 0.3
 
                     camera.position.x += (mouseX * 2 - camera.position.x) * 0.02
                     camera.position.y += (-mouseY * 1.4 - camera.position.y) * 0.02
@@ -475,6 +498,8 @@ export default function ValidationCore({ intensity = 0 }: ValidationCoreProps) {
                 height: '100%',
                 zIndex: 0,
                 opacity: 0.95,
+                transform: 'translateZ(0)',
+                willChange: 'transform',
             }}
         />
     )

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, memo } from 'react'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
@@ -28,7 +28,7 @@ interface HeroProps {
     }>
 }
 
-export default function Hero({ rulesCount = 0, jobs = [] }: HeroProps) {
+function HeroComponent({ rulesCount = 0, jobs = [] }: HeroProps) {
     const [intensity, setIntensity] = useState(0)
     const router = useRouter()
 
@@ -69,6 +69,7 @@ export default function Hero({ rulesCount = 0, jobs = [] }: HeroProps) {
                 alignItems: 'center',
                 paddingTop: 120,
                 overflow: 'hidden',
+                transform: 'translateZ(0)', // Hardware acceleration
             }}
         >
             <ValidationCore intensity={intensity} />
@@ -346,3 +347,6 @@ export default function Hero({ rulesCount = 0, jobs = [] }: HeroProps) {
         </section>
     )
 }
+
+// Memoize Hero component to prevent unnecessary re-renders during scroll
+export default memo(HeroComponent)
