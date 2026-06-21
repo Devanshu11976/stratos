@@ -236,18 +236,37 @@ async def _mark_failed(job_id: str, error_msg: str) -> None:
 
 
 if __name__ == "__main__":
-    redis_conn = Redis.from_url(
-        settings.REDIS_URL,
-        socket_keepalive=True,
-        socket_keepalive_options={
-            TCP_KEEPIDLE: 10,
-            TCP_KEEPINTVL: 5,
-            TCP_KEEPCNT: 3
-        },
-        socket_timeout=60,
-        socket_connect_timeout=30,
-        health_check_interval=15,
-        retry_on_timeout=True
-    )
+    # Create Redis connection with reconnection logic
+    max_retries = 5
+    redis_conn = None
+    for attempt in range(max_retries):
+        try:
+            redis_conn = Redis.from_url(
+                settings.REDIS_URL,
+                socket_keepalive=True,
+                socket_keepalive_options={
+                    TCP_KEEPIDLE: 10,
+                    TCP_KEEPINTVL: 5,
+                    TCP_KEEPCNT: 3
+                },
+                socket_timeout=60,
+                socket_connect_timeout=30,
+                health_check_interval=15,
+                retry_on_timeout=True,
+                decode_responses=False
+            )
+            # Test connection
+            redis_conn.ping()
+            print(f"Redis connection established on attempt {attempt + 1}")
+            break
+        except Exception as exc:
+            print(f"Redis connection attempt {attempt + 1} failed: {exc}")
+            if attempt == max_retries - 1:
+                print("Failed to establish Redis connection after maximum retries")
+                raise
+            print(f"Retrying in 2 seconds...")
+            import time
+            time.sleep(2)
+    
     worker = Worker([Queue("default", connection=redis_conn)], connection=redis_conn)
     worker.work(with_scheduler=True)

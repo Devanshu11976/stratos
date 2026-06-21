@@ -193,26 +193,42 @@ class UploadController(Controller):
             logger.warning(f"Failed to cleanup temp file {file_path}: {exc}")
 
         try:
-            redis_conn = Redis.from_url(
-                settings.REDIS_URL,
-                socket_keepalive=True,
-                socket_keepalive_options={
-                    TCP_KEEPIDLE: 10,
-                    TCP_KEEPINTVL: 5,
-                    TCP_KEEPCNT: 3
-                },
-                socket_timeout=30,
-                socket_connect_timeout=30,
-                health_check_interval=15,
-                retry_on_timeout=True
-            )
-            q = Queue("default", connection=redis_conn)
-            from rq import Retry
-            q.enqueue(
-                "app.workers.tasks.process_dataset_task",
-                job_id, storage_path, country_code,
-                retry=Retry(max=3, interval=[60, 120, 240]),
-            )
+            # Create Redis connection with reconnection logic
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    redis_conn = Redis.from_url(
+                        settings.REDIS_URL,
+                        socket_keepalive=True,
+                        socket_keepalive_options={
+                            TCP_KEEPIDLE: 10,
+                            TCP_KEEPINTVL: 5,
+                            TCP_KEEPCNT: 3
+                        },
+                        socket_timeout=30,
+                        socket_connect_timeout=30,
+                        health_check_interval=15,
+                        retry_on_timeout=True,
+                        decode_responses=False
+                    )
+                    # Test connection
+                    redis_conn.ping()
+                    q = Queue("default", connection=redis_conn)
+                    from rq import Retry
+                    q.enqueue(
+                        "app.workers.tasks.process_dataset_task",
+                        job_id, storage_path, country_code,
+                        retry=Retry(max=3, interval=[60, 120, 240]),
+                    )
+                    break
+                except Exception as redis_exc:
+                    if attempt == max_retries - 1:
+                        raise
+                    import logging
+                    logger = logging.getLogger("xeno.api")
+                    logger.warning(f"Redis connection attempt {attempt + 1} failed, retrying: {redis_exc}")
+                    import time
+                    time.sleep(1)
         except Exception as exc:
             import logging
             logger = logging.getLogger("xeno.api")
