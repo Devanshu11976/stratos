@@ -39,11 +39,40 @@ def main():
     
     def heartbeat():
         """Periodically check Redis connection and restart worker if lost"""
+        from datetime import datetime, timedelta
+        from rq import Queue
+        
         while not stop_event.is_set():
             try:
                 time.sleep(20)  # Check every 20 seconds (reduced from 30)
+                
+                # Check Redis connection
                 if not redis_health_check():
                     raise ConnectionError("Redis health check failed")
+                
+                # Check for stuck jobs (jobs in started registry for > 30 minutes)
+                try:
+                    redis_conn = redis_manager.get_connection()
+                    queue = Queue("default", connection=redis_conn)
+                    started_job_registry = queue.started_job_registry
+                    now = datetime.utcnow()
+                    
+                    stuck_count = 0
+                    for job_id in started_job_registry.get_job_ids():
+                        job = queue.fetch_job(job_id)
+                        if job and job.started_at:
+                            duration = (now - job.started_at).total_seconds() / 60
+                            if duration > 30:  # 30 minutes threshold
+                                stuck_count += 1
+                                print(f"Heartbeat: Found stuck job {job_id} running for {duration:.1f} minutes")
+                    
+                    if stuck_count > 0:
+                        print(f"Heartbeat: Found {stuck_count} stuck jobs, triggering worker restart...")
+                        stop_event.set()
+                        os._exit(1)
+                except Exception as queue_exc:
+                    print(f"Heartbeat: Queue check failed: {queue_exc}")
+                    
             except Exception as exc:
                 print(f"Heartbeat: Redis connection lost: {exc}")
                 print("Heartbeat: Triggering worker restart...")

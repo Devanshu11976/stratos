@@ -1,2 +1,2 @@
 web: alembic upgrade head && python main.py
-worker: python -m rq.cli worker --url $REDIS_URL default
+worker: python start_worker.py

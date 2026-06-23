@@ -27,10 +27,15 @@ ENV PATH=/root/.local/bin:$PATH
 COPY . .
 
 # Make startup scripts executable
-RUN chmod +x start_worker.py 2>/dev/null || true
+RUN chmod +x start_worker.py worker_health_check.py 2>/dev/null || true
 
 # Expose Litestar default port (only used by API service, not worker)
 EXPOSE 8000
+
+# Health check - runs every 30s, timeout 10s, retries 3, start after 40s
+# Uses different check based on service type
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=40s \
+    CMD sh -c "if [ \"$RQ_WORKER\" = \"true\" ]; then python worker_health_check.py; else curl -f http://localhost:8000/api/health || exit 1; fi"
 
 # Check if this is a worker deployment by checking for RQ_WORKER environment variable
 # If set, run the worker; otherwise run the API with migrations

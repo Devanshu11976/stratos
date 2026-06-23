@@ -54,6 +54,7 @@ services:
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
     plan: free
+    healthCheckPath: /api/health/queue
     envVars:
       - key: RQ_WORKER
         value: true
