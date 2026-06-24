@@ -18,7 +18,7 @@
 
 <br/>
 
-[![Stars](https://img.shields.io/github/stars/Devanshu11976/xeno?style=social)](https://github.com/Devanshu11976/xeno)
+[![Stars](https://img.shields.io/github/stars/Devanshu11976/stratos?style=social)](https://github.com/Devanshu11976/stratos)
 [![License](https://img.shields.io/badge/license-Proprietary-lightgrey?style=flat-square)]()
 [![Docs](https://img.shields.io/badge/API%20Docs-Swagger-85EA2D?style=flat-square&logo=swagger&logoColor=white)]()
 
