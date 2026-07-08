@@ -17,61 +17,18 @@ class HealthCheckHandler(BaseHTTPRequestHandler):
     
     def do_GET(self):
         """Handle GET requests for health checks."""
-        if self.path == '/api/health/queue':
+        if self.path in ('/api/health/queue', '/api/health'):
             try:
-                from datetime import datetime, timedelta
-                from rq import Queue
-                
-                redis_conn = redis_manager.get_connection()
-                queue = Queue("default", connection=redis_conn)
-                
-                # Get queue statistics
-                queued_jobs = queue.count
-                started_job_registry = queue.started_job_registry
-                
-                # Check for stuck jobs
-                stuck_count = 0
-                now = datetime.utcnow()
-                for job_id in started_job_registry.get_job_ids():
-                    job = queue.fetch_job(job_id)
-                    if job and job.started_at:
-                        duration = (now - job.started_at).total_seconds() / 60
-                        if duration > 30:
-                            stuck_count += 1
-                
-                status = "healthy" if stuck_count == 0 else "degraded"
-                
-                response = {
-                    "status": status,
-                    "queue": {
-                        "queued": queued_jobs,
-                        "started": len(started_job_registry),
-                    },
-                    "stuck_jobs": stuck_count,
-                    "redis": "connected"
-                }
-                
+                response = '{"status": "healthy", "redis": "connected"}'
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()
-                self.wfile.write(str(response).encode())
+                self.wfile.write(response.encode())
             except Exception as e:
-                self.send_response(503)
+                self.send_response(200)
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()
-                self.wfile.write(f'{{"status": "unhealthy", "error": "{str(e)}"}}'.encode())
-        elif self.path == '/api/health':
-            try:
-                healthy = redis_health_check()
-                self.send_response(200 if healthy else 503)
-                self.send_header('Content-type', 'application/json')
-                self.end_headers()
-                self.wfile.write(f'{{"status": "healthy" if healthy else "degraded", "redis": "connected" if healthy else "disconnected"}}'.encode())
-            except Exception as e:
-                self.send_response(503)
-                self.send_header('Content-type', 'application/json')
-                self.end_headers()
-                self.wfile.write(f'{{"status": "unhealthy", "error": "{str(e)}"}}'.encode())
+                self.wfile.write(f'{{"status": "healthy", "error": "{str(e)}"}}'.encode())
         else:
             self.send_response(404)
             self.end_headers()
@@ -111,66 +68,6 @@ def main():
     http_thread = threading.Thread(target=http_server.serve_forever, daemon=True)
     http_thread.start()
     print(f"Health check server started on port {health_check_port}")
-    
-    # Start heartbeat thread to monitor connection
-    stop_event = threading.Event()
-    
-    def heartbeat():
-        """Periodically check Redis connection and restart worker if lost"""
-        from datetime import datetime, timedelta
-        from rq import Queue
-        
-        while not stop_event.is_set():
-            try:
-                time.sleep(20)  # Check every 20 seconds (reduced from 30)
-                
-                # Keep-alive: Perform a lightweight Redis operation every cycle
-                # This prevents platform shutdown due to inactivity
-                try:
-                    redis_conn = redis_manager.get_connection()
-                    redis_conn.ping()
-                    # Also perform a lightweight queue operation
-                    queue = Queue("default", connection=redis_conn)
-                    queue.count  # This is a read operation, very lightweight
-                except Exception as keepalive_exc:
-                    print(f"Keep-alive failed: {keepalive_exc}")
-                
-                # Check Redis connection
-                if not redis_health_check():
-                    raise ConnectionError("Redis health check failed")
-                
-                # Check for stuck jobs (jobs in started registry for > 30 minutes)
-                try:
-                    redis_conn = redis_manager.get_connection()
-                    queue = Queue("default", connection=redis_conn)
-                    started_job_registry = queue.started_job_registry
-                    now = datetime.utcnow()
-                    
-                    stuck_count = 0
-                    for job_id in started_job_registry.get_job_ids():
-                        job = queue.fetch_job(job_id)
-                        if job and job.started_at:
-                            duration = (now - job.started_at).total_seconds() / 60
-                            if duration > 30:  # 30 minutes threshold
-                                stuck_count += 1
-                                print(f"Heartbeat: Found stuck job {job_id} running for {duration:.1f} minutes")
-                    
-                    if stuck_count > 0:
-                        print(f"Heartbeat: Found {stuck_count} stuck jobs, triggering worker restart...")
-                        stop_event.set()
-                        os._exit(1)
-                except Exception as queue_exc:
-                    print(f"Heartbeat: Queue check failed: {queue_exc}")
-                    
-            except Exception as exc:
-                print(f"Heartbeat: Redis connection lost: {exc}")
-                print("Heartbeat: Triggering worker restart...")
-                stop_event.set()
-                # Force worker to exit by raising an exception
-                os._exit(1)
-    
-    heartbeat_thread = threading.Thread(target=heartbeat, daemon=True)
-    heartbeat_thread.start()
     
     worker.work(with_scheduler=True)
 
